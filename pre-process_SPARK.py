@@ -11,11 +11,14 @@ print("#####################################################")
 print('\n\n\n\n')
 
 print(sc.version)
+start_time = time.time()
 
 
 devFile = 'yahoo/data/temp/testDataset_3_users_SPARK_VERSION.txt'
+dev_10k = 'yahoo/data/temp/artistDataset_10k_users_SPARK_VERSION.txt'
+dev_100k = 'yahoo/data/temp/artistDataset_10k_users_SPARK_VERSION.txt'
+fullFile = 'yahoo/data/trainIdx1_SPARK_VERSION.txt'
 
-dev_10k = 'yahoo/data/temp/artistDataset_10000_users_SPARK_VERSION.txt'
 
 ratingFile = sc.textFile(devFile)
 
@@ -67,24 +70,34 @@ print("#####################################################")
 
 
 userHistoryRDD = ratingFile.map(lambda line: splitAndRearange(line)).groupByKey()
-print('\n\n\n\n User history created')
+#print('\n\n\n\n User history created')
+temp_time=time.time()-start_time
+print('\n\n\nuserHistory completed, time elapsed is: %d seconds == %d minutes' % (temp_time,temp_time/60))
 
 
 ngramRDD = userHistoryRDD.flatMap(lambda line: userHistorytoNgram(line))
-print('\n\n\n\n Ngrams created')
+#print('\n\n\n\n Ngrams created')
+temp_time=time.time()-start_time
+print('\n\n\nngrams created, time elapsed is: %d seconds == %d minutes' % (temp_time,temp_time/60))
+
+
 
 outputRDD = ngramRDD.reduceByKey(lambda a,b : a + b).map(lambda line: mapToOutputFormat(line))
-print('\n\n\n\n Waiting to collect')
-print('\n\n')
+#print('\n\n\n\n Waiting to collect')
+#print('\n\n')
 #print(outputRDD.collect())
 #print('\n')
+temp_time=time.time()-start_time
+print('\n\n\nOutput reduction completed, time elapsed is: %d seconds == %d minutes\n\n\n' % (temp_time,temp_time/60))
+
 
 
 #outputRDD.saveAsTextFile(outFile)
-
-
 #Write to single .txt file to match CCM input
 outputList = outputRDD.collect()
+
+
+print('\n\n\n Writing to file')
 
 if os.path.isfile(outFile):
     os.remove(outFile)    
@@ -94,6 +107,8 @@ for line in outputList:
 	out.write(line)
 
 
+end_time=time.time()-start_time
+print('All completed, end time is: %d seconds == %d minutes' %(end_time,end_time/60))
 
 
 print('\n\n\n\n')
