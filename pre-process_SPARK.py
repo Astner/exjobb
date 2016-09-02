@@ -16,15 +16,14 @@ start_time = time.time()
 
 devFile = 'yahoo/data/temp/testDataset_3_users_SPARK_VERSION.txt'
 dev_10k = 'yahoo/data/temp/artistDataset_10k_users_SPARK_VERSION.txt'
-dev_100k = 'yahoo/data/temp/artistDataset_10k_users_SPARK_VERSION.txt'
+dev_100k = 'yahoo/data/temp/artistDataset_100k_users_SPARK_VERSION.txt'
 fullFile = 'yahoo/data/trainIdx1_SPARK_VERSION.txt'
 
 
-ratingFile = sc.textFile(devFile)
+ratingFile = sc.textFile(dev_100k)
 
-
-outFile = 'yahoo/data/ngram/tempNRAM_4users.txt'
-outFolder = 'yahoo/data/ngram/RDD_version'
+outFile = 'yahoo/data/ngram/tempNRAM_100k:users.txt'
+outFolder = 'yahoo/data/ngram/100k_users'
 
 print("#####################################################")
 #print('Count on ratingFile: %s ' % (ratingFile.count()))
@@ -55,7 +54,7 @@ def userHistorytoNgram(line):
 
 def mapToOutputFormat(line):
 	((k1,k2),count) = line
-	return str(count)+','+k1+','+k2+'\n'
+	return str(count)+','+k1+','+k2
 
 print("#####################################################")
 
