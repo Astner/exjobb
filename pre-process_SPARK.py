@@ -24,7 +24,7 @@ ratingFile = sc.textFile(devFile)
 
 
 outFile = 'yahoo/data/ngram/tempNRAM_4users.txt'
-
+outFolder = 'yahoo/data/ngram/RDD_version'
 
 print("#####################################################")
 #print('Count on ratingFile: %s ' % (ratingFile.count()))
@@ -92,19 +92,19 @@ print('\n\n\nOutput reduction completed, time elapsed is: %d seconds == %d minut
 
 
 
-#outputRDD.saveAsTextFile(outFile)
+outputRDD.saveAsTextFile(outFolder)
+
 #Write to single .txt file to match CCM input
-outputList = outputRDD.collect()
 
+#outputList = outputRDD.collect()
+#print('\n\n\n Writing to file')
 
-print('\n\n\n Writing to file')
+#if os.path.isfile(outFile):
+#    os.remove(outFile)    
+#out = open(outFile,'a')
 
-if os.path.isfile(outFile):
-    os.remove(outFile)    
-out = open(outFile,'a')
-
-for line in outputList:
-	out.write(line)
+#for line in outputList:
+#	out.write(line)
 
 
 end_time=time.time()-start_time
