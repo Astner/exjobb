@@ -3,6 +3,8 @@
 
 from pyspark import SparkContext
 import os,time
+import shutil
+
 
 sc =SparkContext()
 
@@ -20,10 +22,10 @@ dev_100k = 'yahoo/data/temp/artistDataset_100k_users_SPARK_VERSION.txt'
 fullFile = 'yahoo/data/trainIdx1_SPARK_VERSION.txt'
 
 
-ratingFile = sc.textFile(dev_100k)
+ratingFile = sc.textFile(devFile)
+outFolder = 'yahoo/data/ngram/3_users'
 
-outFile = 'yahoo/data/ngram/tempNRAM_100k:users.txt'
-outFolder = 'yahoo/data/ngram/100k_users'
+#outFile = 'yahoo/data/ngram/tempNRAM_3_users.txt'
 
 print("#####################################################")
 #print('Count on ratingFile: %s ' % (ratingFile.count()))
@@ -90,6 +92,11 @@ temp_time=time.time()-start_time
 print('\n\n\nOutput reduction completed, time elapsed is: %d seconds == %d minutes\n\n\n' % (temp_time,temp_time/60))
 
 
+
+#shutil.rmtree("dir-you-want-to-remove")
+if os.path.isdir(outFolder):
+	#os.rmdir(outFolder)
+	shutil.rmtree(outFolder)
 
 outputRDD.saveAsTextFile(outFolder)
 
