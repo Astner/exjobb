@@ -72,14 +72,18 @@ print("#####################################################")
 
 userHistoryRDD = ratingFile.map(lambda line: splitAndRearange(line)).groupByKey()
 #print('\n\n\n\n User history created')
-temp_time=time.time()-start_time
-print('\n\n\nuserHistory completed, time elapsed is: %d seconds == %d minutes' % (temp_time,temp_time/60))
 
+
+print('\n\n\nCount on userHistory: %d' % (userHistoryRDD.count()))
+temp_time=time.time()-start_time
+print('\n\n\nuserHistory counted, time elapsed is: %d seconds == %d minutes' % (temp_time,temp_time/60))
 
 ngramRDD = userHistoryRDD.flatMap(lambda line: userHistorytoNgram(line))
 #print('\n\n\n\n Ngrams created')
+
+print('\n\n\nCount on mgrams: %d' % (ngramRDD.count()))
 temp_time=time.time()-start_time
-print('\n\n\nngrams created, time elapsed is: %d seconds == %d minutes' % (temp_time,temp_time/60))
+print('\n\n\nngrams counted, time elapsed is: %d seconds == %d minutes' % (temp_time,temp_time/60))
 
 
 
@@ -88,6 +92,7 @@ outputRDD = ngramRDD.reduceByKey(lambda a,b : a + b).map(lambda line: mapToOutpu
 #print('\n\n')
 #print(outputRDD.collect())
 #print('\n')
+print('\n\n\nCount on output: %d' % (outputRDD.count()))
 temp_time=time.time()-start_time
 print('\n\n\nOutput reduction completed, time elapsed is: %d seconds == %d minutes\n\n\n' % (temp_time,temp_time/60))
 
