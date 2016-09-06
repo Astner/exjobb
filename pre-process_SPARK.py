@@ -16,14 +16,26 @@ print(sc.version)
 start_time = time.time()
 
 
-devFile = 'yahoo/data/temp/testDataset_3_users_SPARK_VERSION.txt'
-dev_10k = 'yahoo/data/temp/artistDataset_10k_users_SPARK_VERSION.txt'
-dev_100k = 'yahoo/data/temp/artistDataset_100k_users_SPARK_VERSION.txt'
-fullFile = 'yahoo/data/trainIdx1_SPARK_VERSION.txt'
+#devFile = 'yahoo/data/temp/testDataset_3_users_SPARK_VERSION.txt'
+#dev_10k = 'yahoo/data/temp/artistDataset_10k_users_SPARK_VERSION.txt'
+#dev_100k = 'yahoo/data/temp/artistDataset_100k_users_SPARK_VERSION.txt'
+#fullFile = 'yahoo/data/trainIdx1_SPARK_VERSION.txt'
+
+#TODO: add split versions and paths
+#ratingFile = sc.textFile(devFile)
 
 
-ratingFile = sc.textFile(devFile)
-outFolder = 'yahoo/data/ngram/3_users'
+#inputPath = 'yahoo/data/temp'
+dev_1k = 'yahoo/data/temp/split_dataset_1k_users'
+dev_10k = 'yahoo/data/temp/split_dataset_10k_users'
+dev_100k = 'yahoo/data/temp/split_dataset_100k_users'
+dev_all = 'yahoo/data/temp/split_dataset_ALL_users'
+
+
+inputFolder = dev_10k
+outFolder = 'yahoo/data/ngram/split_dev_10k'
+
+
 
 #outFile = 'yahoo/data/ngram/tempNRAM_3_users.txt'
 
@@ -69,41 +81,61 @@ print("#####################################################")
 
 #tempRDD = tabMapped.map(lambda line: (line[4],[line[0],line[1],line[2]]))
 
-
-userHistoryRDD = ratingFile.map(lambda line: splitAndRearange(line)).groupByKey()
-#print('\n\n\n\n User history created')
-
-
-print('\n\n\nCount on userHistory: %d' % (userHistoryRDD.count()))
-temp_time=time.time()-start_time
-print('\n\n\nuserHistory counted, time elapsed is: %d seconds == %d minutes' % (temp_time,temp_time/60))
-
-ngramRDD = userHistoryRDD.flatMap(lambda line: userHistorytoNgram(line))
-#print('\n\n\n\n Ngrams created')
-
-print('\n\n\nCount on mgrams: %d' % (ngramRDD.count()))
-temp_time=time.time()-start_time
-print('\n\n\nngrams counted, time elapsed is: %d seconds == %d minutes' % (temp_time,temp_time/60))
+#Make sure main folder is empty and existing
+if os.path.isdir(outFolder):
+	#os.rmdir(outFolder)
+	shutil.rmtree(outFolder)
+os.mkdir(outFolder) 
 
 
+i = 1
 
-outputRDD = ngramRDD.reduceByKey(lambda a,b : a + b).map(lambda line: mapToOutputFormat(line))
+#import os
+#List all files in the folder & make sure they end in .txt
+for file in os.listdir(inputFolder):
+	if file.endswith(".txt"):
+		print(file)
+
+		ratingFile = sc.textFile(inputFolder +'/'+file)
+
+		userHistoryRDD = ratingFile.map(lambda line: splitAndRearange(line)).groupByKey()
+
+		#print('\n\n\n\n User history created')
+		#print('\n\n\nCount on userHistory: %d' % (userHistoryRDD.count()))
+		#temp_time=time.time()-start_time
+		#print('\n\n\nuserHistory counted, time elapsed is: %d seconds == %d minutes' % (temp_time,temp_time/60))
+
+		ngramRDD = userHistoryRDD.flatMap(lambda line: userHistorytoNgram(line))
+
+		#print('\n\n\n\n Ngrams created')
+		#print('\n\n\nCount on ngrams: %d' % (ngramRDD.count()))
+		#temp_time=time.time()-start_time
+		#print('\n\n\nngrams counted, time elapsed is: %d seconds == %d minutes' % (temp_time,temp_time/60))
+
+
+		outputRDD = ngramRDD.reduceByKey(lambda a,b : a + b).map(lambda line: mapToOutputFormat(line))
+
+
+		outSubFolder = outFolder + '/split_nr_' + str(i)
+		i = i+1
+
+		outputRDD.saveAsTextFile(outSubFolder)
+
+
 #print('\n\n\n\n Waiting to collect')
 #print('\n\n')
 #print(outputRDD.collect())
 #print('\n')
-print('\n\n\nCount on output: %d' % (outputRDD.count()))
-temp_time=time.time()-start_time
-print('\n\n\nOutput reduction completed, time elapsed is: %d seconds == %d minutes\n\n\n' % (temp_time,temp_time/60))
+#print('\n\n\nCount on output: %d' % (outputRDD.count()))
+#temp_time=time.time()-start_time
+#print('\n\n\nOutput reduction completed, time elapsed is: %d seconds == %d minutes\n\n\n' % (temp_time,temp_time/60))
 
 
 
 #shutil.rmtree("dir-you-want-to-remove")
-if os.path.isdir(outFolder):
+#if os.path.isdir(outFolder):
 	#os.rmdir(outFolder)
-	shutil.rmtree(outFolder)
-
-outputRDD.saveAsTextFile(outFolder)
+#	shutil.rmtree(outFolder)
 
 #Write to single .txt file to match CCM input
 
