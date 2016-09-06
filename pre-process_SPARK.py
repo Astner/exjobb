@@ -32,8 +32,8 @@ dev_100k = 'yahoo/data/temp/split_dataset_100k_users'
 dev_all = 'yahoo/data/temp/split_dataset_ALL_users'
 
 
-inputFolder = dev_10k
-outFolder = 'yahoo/data/ngram/split_dev_10k'
+inputFolder = dev_100k
+outFolder = 'yahoo/data/ngram/split_dev_100k'
 
 
 
@@ -87,8 +87,12 @@ if os.path.isdir(outFolder):
 	shutil.rmtree(outFolder)
 os.mkdir(outFolder) 
 
+logFile = outFolder + '/LOG_FILE' 
+log = open(logFile,'a')
 
 i = 1
+
+log.write('Initiating on file: ' + inputFolder +'\n')
 
 #import os
 #List all files in the folder & make sure they end in .txt
@@ -120,7 +124,9 @@ for file in os.listdir(inputFolder):
 		i = i+1
 
 		outputRDD.saveAsTextFile(outSubFolder)
-
+		print('\n\n\nFile named: %s is done\n\n\n' %(file))
+		temp_time=time.time()-start_time
+		log.write('File named: %s is done, for i = %d, at time: %d minutes \n' %(file,i-1,temp_time/60))
 
 #print('\n\n\n\n Waiting to collect')
 #print('\n\n')
@@ -152,12 +158,13 @@ for file in os.listdir(inputFolder):
 
 end_time=time.time()-start_time
 print('All completed, end time is: %d seconds == %d minutes' %(end_time,end_time/60))
+log.write('All completed, end time is: %d seconds == %d minutes' %(end_time,end_time/60))
 
-
+log.close()
 print('\n\n\n\n')
 print("#####################################################")
 print("#####################################################")
 
 
-
+#78 min...
 
