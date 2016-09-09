@@ -86,14 +86,14 @@ print("#####################################################")
 if os.path.isdir(outFolder):
 	#os.rmdir(outFolder)
 	shutil.rmtree(outFolder)
-#os.mkdir(outFolder) 
+os.mkdir(outFolder) 
 
-#logFile = outFolder + '/LOG_FILE' 
-#log = open(logFile,'a')
+logFile = outFolder + '/LOG_FILE' 
+log = open(logFile,'a')
 
 #i = 1
 
-#log.write('Initiating on file: ' + inputFile +'\n')
+log.write('Initiating on file: ' + inputFile +'\n\n')
 
 #import os
 #List all files in the folder & make sure they end in .txt
@@ -105,37 +105,47 @@ ratingFile = sc.textFile(inputFile)
 
 userHistoryRDD = ratingFile.map(lambda line: splitAndRearange(line)).groupByKey()
 
+
+userCount = userHistoryRDD.count()
 #print('\n\n\n\n User history created')
-#print('\n\n\nCount on userHistory: %d' % (userHistoryRDD.count()))
-#temp_time=time.time()-start_time
-#print('\n\n\nuserHistory counted, time elapsed is: %d seconds == %d minutes' % (temp_time,temp_time/60))
+print('\n\n\nCount on userHistory: %d' % (userCount))
+temp_time=time.time()-start_time
+log.write('userHistory counted, count is: %d \ntime elapsed is: %d seconds == %d minutes \n\n' % (userCount,temp_time,temp_time/60))
+
+
+
 
 ngramRDD = userHistoryRDD.flatMap(lambda line: userHistorytoNgram(line))
 
 #print('\n\n\n\n Ngrams created')
-#print('\n\n\nCount on ngrams: %d' % (ngramRDD.count()))
-#temp_time=time.time()-start_time
-#print('\n\n\nngrams counted, time elapsed is: %d seconds == %d minutes' % (temp_time,temp_time/60))
+ngramCount = ngramRDD.count()
+print('\n\n\nCount on ngrams: %d' % (ngramCount))
+temp_time=time.time()-start_time
+log.write('ngrams counted,  count is: %d \ntime elapsed is: %d seconds == %d minutes\n\n' % (ngramCount,temp_time,temp_time/60))
 
 
 outputRDD = ngramRDD.reduceByKey(lambda a,b : a + b).map(lambda line: mapToOutputFormat(line))
 
-
-
+outCount = outputRDD.count()
+print('\n\n\nCount on outputs: %d' % (outCount))
+temp_time=time.time()-start_time
+log.write('output created, count is: %d \ntime elapsed is: %d seconds == %d minutes\n\n' % (outCount,temp_time,temp_time/60))
 
 #if os.path.isdir(outFolder):
 	#os.rmdir(outFolder)
 #	shutil.rmtree(outFolder)
 
-#outputRDD.saveAsTextFile(outFolder)
+
+rddFolder = outFolder +'/files'
+#outputRDD.saveAsTextFile(rddFolder)
 
 
 
 end_time=time.time()-start_time
 print('All completed, end time is: %d seconds == %d minutes' %(end_time,end_time/60))
-#log.write('All completed, end time is: %d seconds == %d minutes' %(end_time,end_time/60))
+log.write('All completed, end time is: %d seconds == %d minutes\n\n' %(end_time,end_time/60))
 
-#log.close()
+log.close()
 print('\n\n\n\n')
 print("#####################################################")
 print("#####################################################")
