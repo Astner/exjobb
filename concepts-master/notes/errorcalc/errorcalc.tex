@@ -1,0 +1,152 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{cite}
+\ifCLASSINFOpdf
+  \usepackage[pdftex]{graphicx}
+ \graphicspath{{./graphics}}
+ \DeclareGraphicsExtensions{.pdf}
+\else
+ \usepackage[dvips]{graphicx}
+ \graphicspath{{./graphics}}
+ \DeclareGraphicsExtensions{.eps}
+\fi
+
+\usepackage[cmex10]{amsmath}
+\usepackage{algorithm, algorithmic}
+\usepackage{array}
+\usepackage{mdwmath}
+\usepackage{mdwtab}
+\usepackage{eqparbox}
+\usepackage{stfloats}
+\usepackage{url}
+\usepackage{marginnote}
+\usepackage{mathtools}
+
+\DeclareMathOperator\erf{erf}
+
+\begin{document}
+\title{Controlling the error in concept similarity calculations}
+\author{\IEEEauthorblockN{Daniel Gillblad and Olof G\"ornerup}
+  \IEEEauthorblockA{Decisions, Networks and Analytics (DNA) Laboratory \\
+    Swedish Institute of Computer Science (SICS)\\
+    SE-164 29 Kista, Sweden \\
+    Email: \{dgi, olofg\}@sics.se}}
+\maketitle
+\begin{abstract}
+  \boldmath Reducing the complexity of concept similarity calculations is only possible through approximations of the similarity measure. Here, we outline several approximation approaches along with bounds on the errors produced.
+\end{abstract}
+
+%\IEEEmaketitle
+
+\section{Preliminaries}
+
+Let $C$ be a set of concepts, and $\xi_{i,j}$ be a correlation (or co-occurrence) measure between concepts $i \in C$ and $j \in C$. Further, we will assume that the used correlation measure always is positive, $0 \leq \xi_{i,j}$. We define the similarity between concepts $i$ and $j$ as
+\begin{equation}
+S(i, j) = \frac{1}{D(i, j)}
+\end{equation}
+where $D(i, j)$ is a distance measure between the correlation vectors of $i$ and $j$, $\Xi_i$ and $\Xi_j$ respectively. Here, we will use the $L_1$-norm which gives us the distance measure
+\begin{equation}
+\label{eq:l1div}
+D^1(i, j) = \sum_{k \in C} | \xi_{i,k} - \xi_{j,k} |
+\end{equation}
+
+\section{Efficient similarity calculation}
+
+Let us denote an approximation of the distance between two measures $D(i, j)$ as $\tilde{D}(i, j)$ and the total approximation error for all pairwise distances as $E_T$. Then, the total approximation error using $L_1$-norm can be written (symmetric distances effectively counted twice) as
+\begin{equation}
+E^1_T = \sum_{i \in C} \sum_{j \in C} | D(i, j) - \tilde{D}(i,j) |
+\end{equation}
+To be able to determine whether a certain concept distance is relevant or not, typically we would like to ensure that the error $E_{D}(i,j)$ in any specific distance approximation is less than a fixed level $\theta_D$,
+\begin{equation}
+E_{D}(i,j) \leq \theta_D
+\end{equation}
+and more specifically for the $L_1$-norm
+\begin{equation}
+E_D^1(i,j) = | D(i, j) - \tilde{D}(i,j) | \leq \theta_D^1
+\end{equation}
+Note that the expected value of $E_{D}(i,j)$ increases as the number of concepts $|C|$ in the calculation increases. Thus, it might be easier to specify the precision of the calculations using the mean correlation error
+\begin{equation}
+E_\xi = \frac{E_{D}(i,j)}{|C|} \leq \theta_\xi
+\end{equation}
+
+\subsection{Removing low-correlation terms}
+\label{sec:removinglowcorr}
+
+To scale similarity calculations for all pairs of concepts at scale, effectively we need to reduce the number of terms in equation \ref{eq:l1div}. First, let us note that
+\begin{equation}
+\label{eq:corrapprox}
+| \xi_{i,k} - \xi_{j,k} | \approx \xi_{i,k}, \quad \xi_{i,k} \gg \xi_{j,k}
+\end{equation}
+and that the error we make in the approximation is
+\begin{equation}
+\label{eq:corrapproxbound}
+\varepsilon_k(i, j) = | \xi_{i,k} - (| \xi_{i,k} - \xi_{j,k} | ) | \leq \xi_{i,k}, \xi_{j,k}
+\end{equation}
+Thus, if we would like to remove terms in the calculation by approximating by zero while keeping the total approximation error $E_T$ as small as possible, we should remove the smallest correlation terms $\xi_{i,k}$ in equation \ref{eq:l1div}. Let $\check{\xi}_{i}$ be a threshold value at which and below correlations of concept $i$ are approximated by zero. Expressing the error $E_D^1(i,j)$ as the sum of discarded correlations, discounted by correlations of $i$ and $j$ with respect to the same $k$, we then get
+\begin{equation} \label{eq:errterms}
+\begin{split}
+E_D^1(i,j) = 
+\sum_{ \substack{\xi_{i,k} \leq \check{\xi}_{i}} } \xi_{i,k}  +
+\sum_{ \substack{\xi_{j,k} \leq \check{\xi}_{j}} } \xi_{j,k} \\
++ \sum_{\mathclap{\xi_{i,k} \leq \check{\xi}_{i}, \xi_{j,k} \leq \check{\xi}_{j} }} (| \xi_{i,k} - \xi_{j,k} | - \xi_{i,k} - \xi_{j,k}).
+\end{split}
+\end{equation}
+Since the third term in Eq.\ \ref{eq:errterms} is at most zero, and precisely zero only when none of the discarded correlations of $i$ and $j$ are with regard to the same concept $k$, we can bound the error by
+\begin{equation} \label{eq:errbound}
+E_D^1(i,j) \leq 
+\sum_{ \substack{\xi_{i,k} \leq \check{\xi}_{i}} } \xi_{i,k}  +
+\sum_{ \substack{\xi_{j,k} \leq \check{\xi}_{j}} } \xi_{j,k}.
+\end{equation}
+Reducing the number of terms in Eq.\ \ref{eq:l1div} while guaranteeing an error $E_D^1(i,j) \leq \theta_D$ is then a matter of sorting correlations $\xi_{i,k}$ and, starting with the smallest one, removing all correlations until the cumulative sum exceeds half the distance error threshold, $\theta_D/2$. 
+
+Moreover, if reducing terms has priority over accuracy, we may start at the other end by specifying a maximum number of allowed non-zero correlations per concept, and keep the corresponding number of highest correlations. By calculating and storing the sums of discarded correlations per concept we can then readily get the error bounds of similarities per concept pair according to Eq.\ \ref{eq:errbound}.
+
+If we instead use a mean correlation error limit $\theta_\xi$, this is as simple as removing all correlations $\xi_{i,k} \leq \theta^\xi$. Note though that in any implementation where edges from $i$ are approximated as zero, it is important to calculate the error based on $\xi_{i,k}$ and not $\xi_{j,k}$ as this will lead to a tighter bound on the error (see equation \ref{eq:corrapproxbound}).
+
+\subsection{Removing terms based on difference}
+
+If we implement the similarity calculation utilizing a message passing algorithm, passing messages from $i$ to $j$ through $k$ and vice versa, removing message forwarding at $k$ could potentially cut down the total number of messages sent for the calculation. The decision on whether we forward a message or not would in this case typically be dependent on the actual difference $|\xi_{i,k}-\xi_{j,k}|$. However, both strategies of removing 1) high-difference messages and 2) low-difference messages are somewhat problematic.
+
+In the first case, removing high difference terms, we need to select terms that we can approximate with a well-bounded error. To achieve this, we would again like to select terms where one of the correlations is small enough to approximate with zero. Thus, combined with the approximation outlined in \ref{sec:removinglowcorr}, this approach is (mostly) redundant.
+
+For the second strategy, small values of $|\xi_{i,k}-\xi_{j,k}|$ could be approximated as zero,
+\begin{equation}
+| \xi_{i,k} - \xi_{j,k} | \approx 0, \quad | \xi_{i,k} - \xi_{j,k} | \leq \theta_\varepsilon
+\end{equation}
+where $\theta_\varepsilon$ is a fixed correlation threshold. Thus, the error by cutting out similar values can simply be bounded through
+\begin{equation}
+\varepsilon_k(i,j) = | \xi_{i,k} - \xi_{j,k} | \leq \theta_\varepsilon
+\end{equation}
+Note though that the strategy of removing low-difference terms in a message passing algorithm essentially conflicts with removing low-correlation terms in \ref{sec:removinglowcorr}, as we still need to send a message indicating that we have approximated the correlation difference with zero. In this situation, we might as well send the actual difference and lower the error bound.
+
+It is possible to use this strategy instead of the one outlined in \ref{sec:removinglowcorr}, but this would involve sending initial messages to all nodes, the number of which will be $|C|^2$ in total.
+
+\subsection{Utilizing typical correlation vectors}
+
+In practice, it is in many cases reasonable to assume that the correlation vectors for most concepts only differ significantly in a small number of components. If this is the case, we can potentially reduce the number of terms necessary for calculating the distance between concept vectors significantly by first subtracting a ``typical'' correlation vector from all concept correlation vectors, and then only calculate the differences only based on components that differ significantly from 0 in the resulting vectors.
+
+Let us denote the mean correlation vector
+\begin{equation}
+\Xi_\mu = \frac{\sum_{i \in C} \Xi_i}{|C|}
+\end{equation}
+and the difference between a correlation vector $\Xi_i$ and the mean correlation vector $\Xi_\mu$
+\begin{eqnarray}
+\Xi_i^{\Delta_\mu} = \Xi_i - \Xi_\mu \nonumber \\ 
+\xi_{i, j}^{\Delta_\mu} = \xi_{i, j} - \xi_{\mu, j}
+\end{eqnarray}
+Since we are removing a constant vector from all similarity vectors, we know that
+\begin{equation}
+| \xi_{i,k} - \xi_{j,k} | = | \xi_{i, k}^{\Delta_\mu} - \xi_{j, k}^{\Delta_\mu} |
+\end{equation}
+i.e. we can calculate the distance between concepts directly in terms of the difference correlation vectors. Using the $L_1$-norm, if we remove a term $\xi_{j,k}^{\Delta_\mu}$ from a similarity calculation by approximate it with zero as in section \ref{sec:removinglowcorr}, the resulting error is
+\begin{equation}
+\varepsilon_k(i, j) = | \xi_{i,k}^{\Delta_\mu} - (| \xi_{i,k}^{\Delta_\mu} - \xi_{j,k}^{\Delta_\mu} | ) |
+\leq | \xi_{j,k}^{\Delta_\mu}|
+\end{equation}
+Thus, by removing terms with low-absolute value $|\xi_{j,k}^{\Delta_\mu}|$ we can remove calculations and control the error in the same way as in \ref{sec:removinglowcorr}.
+
+\section{Conclusions}
+
+When calculating the concept similarity based on the $L_1$-norm, we can reduce the number of terms we need to compare by removing low correlation values with predictable errors. This is true both when working on actual correlation vectors or the difference to a typical correlation vector. However, removing terms based on differences in a message passing setting is not compatible with these strategies, and is expected to perform worse in typical cases.
+
+\end{document}
+

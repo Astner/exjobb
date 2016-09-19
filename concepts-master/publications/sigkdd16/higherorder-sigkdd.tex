@@ -1,0 +1,254 @@
+\documentclass{sig-alternate}
+\usepackage{mathtools}
+\usepackage{color}
+% For displaying Scala source code
+\usepackage{listings}
+\lstdefinelanguage{Scala}{
+  morekeywords={abstract,case,catch,class,def,%
+    do,else,extends,false,final,finally,%
+    for,if,implicit,import,match,mixin,%
+    new,null,object,override,package,%
+    private,protected,requires,return,sealed,%
+    super,this,throw,trait,true,try,%
+    type,val,var,while,with,yield},
+  otherkeywords={=>,<-,<\%,<:,>:,\#,@},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[n]{/*}{*/},
+  morestring=[b]",
+  morestring=[b]',
+  morestring=[b]"""
+}
+\lstset{language=Scala, basicstyle={\small\ttfamily}}
+
+% For commenting
+\newcommand{\comment}[1]{{\small \color{red} {#1}} \normalcolor}
+% Use this line for leaving out comments
+%\newcommand{\comment}[1]{}
+
+% Notation commands (change all by changing here)
+% Defina a capital Rho
+\newcommand{\Rho}{\mathrm{P}}
+% Concept relation
+\newcommand{\rn}[1]{\rho_{#1}}
+% Concept L1 norm
+\newcommand{\rns}[1]{|\rn{#1}|_1}
+% Concept relation threshold
+\newcommand{\mrn}[1]{\tau_{#1}}
+% Discarded concept relation sum
+\newcommand{\drns}[1]{|\check{\rho}_{#1}|_1}
+% Kept concept relation sum
+\newcommand{\krns}[1]{|\hat{\rho}_{#1}|_1}
+% Concept relation vector
+\newcommand{\rv}{\Rho}
+
+% Concept similarity
+\newcommand{\sy}[1]{\sigma_{#1}}
+% Approximate concept similarity
+\newcommand{\asy}[1]{\tilde{\sigma}_{#1}}
+% L1 norm of difference
+\newcommand{\nm}[1]{L_1(#1)}
+\newcommand{\dnm}[2]{|\rn{#1}-\rn{#2}|_1}
+% Approximate L_1 norm
+\newcommand{\anm}[1]{\tilde{L}_1(#1)}
+
+\hyphenation{adap-ta-tion dis-t-ri-bu-ted de-tec-tion net-wo-rk cha-n-ges}
+
+\begin{document}
+
+\title{A scalable graph-based approach to abstract concept discovery}
+
+\numberofauthors{3}
+\author{
+\alignauthor
+Olof G\"{o}rnerup\\ %\titlenote{}\\
+       \affaddr{Swedish Institute of}\\
+       \affaddr{Computer Science (SICS)}\\
+       \affaddr{SE-164 29 Kista, Sweden}\\
+       \email{olof@sics.se}
+\alignauthor
+Daniel Gillblad\\ %\titlenote{}\\
+       \affaddr{Swedish Institute of}\\
+       \affaddr{Computer Science (SICS)}\\
+       \affaddr{SE-164 29 Kista, Sweden}\\
+       \email{dgi@sics.se}
+\alignauthor
+Theodore Vasiloudis\\ %\titlenote{}\\
+       \affaddr{Swedish Institute of}\\
+       \affaddr{Computer Science (SICS)}\\
+       \affaddr{SE-164 29 Kista, Sweden}\\
+       \email{tvas@sics.se}
+%\and  % use '\and' if you need 'another row' of author names
+}
+
+\maketitle
+\begin{abstract}
+\begin{sloppypar}
+Abstract.
+\end{sloppypar}
+\end{abstract}
+
+\category{I.2.6}{Artificial Intelligence}{Analogies}
+\category{I.5.3}{Clustering}{Algorithms, Similarity measures}
+\category{H.2.8}{Database Management}{Database Applications -- Data Mining}
+
+\terms{Algorithms, Design, Experimentation}
+
+\keywords{Concept discovery, graph algorithms, community detection, clustering}
+
+\section{Introduction}
+
+\subsection{Outline}
+
+\section{Related work}
+\label{sec:related work}
+
+% Taken directly from KAIS article - must be rewritten and extended.
+
+The principle of relating objects with respect to contextual information is employed in several different areas, including ontology
+learning, computational linguistics, bioinformatics and bibliometrics. The method that is closest in spirit to
+ours is SimRank \cite{Jeh2002simrank}, which is a general approach for obtaining similarities between vertices in a graph.
+SimRank is an iterative method that uses the graph structure to derive similarities between objects by relating ``objects that are
+related to similar objects'' \cite{Jeh2002simrank}. The main drawback with their approach, however, is that it is not scalable due to
+a cubic time complexity with the number of vertices in the graph. This has partly been remedied in improved versions of the algorithm,
+such as the one by \cite{Yu2012simrankOpt}, but these are still too computationally demanding in order to be applicable on
+very large graphs. In comparison, we can comfortably run our algorithm on substantial graphs, doing only a single
+pass over the data.
+\cite{leicht2006vertex} propose a similarity calculation method which deals with another
+limitation of SimRank, namely that similarities are only calculated for nodes connected by paths of
+even length. The authors propose an alternative iterative method, but it suffers from much of the same scalability
+problems as with SimRank.
+\cite{ravasz2002hierarchical} propose an approach for finding similar vertices using so called
+topological overlap measures, which they apply on metabolic networks. \cite{Zhang2005tom}
+generalized this approach for use on weighted gene co-expression networks. As in our case, these methods relate vertices by assigning
+higher similarity scores between vertices that share many neighbors, but since their approaches are primarily tailored for bioinformatics tasks,
+they lack the generality of SimRank and the method presented here.
+
+In computational linguistics, distributional analysis -- where linguistic items are characterized by
+their relative distributional properties in the data -- has become a fundamental approach \cite{Harris-1970}. We use
+similar assumptions as a starting point, and when applied to text, the approach can be seen as transforming a graph
+over syntagmatic similarities to one describing paradigmatic similarities \cite{Sahlgren-2006}, in which
+concepts are discovered through clustering. A large number of methods to find semantic similarities have been
+developed -- see \cite{Harispe2015} for a recent review -- from the seminal work by \cite{Church90}, and \cite{Brown1992}, to more recent approaches, e.g.\ based on vector representations, such as GloVe
+\cite{Pennington2014}, and neural networks, such as word2vec \cite{Mikolov-2013}.
+Several of these methods could be used to produce the equivalent of the similarity graph on which we perform
+clustering to find concepts. These methods, however, are limited to natural language processing while our approach
+is domain-agnostic. Another important difference is that our method builds similarity graphs without
+using any dimensionality reduction or intermediate representations, such as high-dimensional vectors
+or difficult-to-interpret neural networks. The advantage of using a direct graph representation is that it allows us to
+understand and reason about higher-scale structures among objects and concepts, such as hierarchical organization, in a straightforward
+manner using established graph and network methods. Although graph representations are used in natural language processing to relate
+similar words and documents \cite{Mihalcea2011}, these approaches have several limitations in comparison to our
+approach, e.g.\ by expecting existing similarity graphs as input, using ad hoc word relations (such as linking words separated
+by \emph{and} or \emph{or}), requiring part-of-speech tagged data, or by using human curated datasets, such as WordNet \cite{miller1995wordnet}.
+
+Another related area is ontology learning \cite{Wong2012ontology}, which aims to infer taxonomies
+from corpora and other data sources. While one can draw parallels between our work and this field, the latter is often limited
+by exclusively considering a specific type of basic building blocks, such as nouns, where these are related in
+ hierarchies with respect to specific relations, such as \emph{is a} and \emph{part of}. Similarly, context-based similarity
+  discovery can also be viewed as a generalization of methods in bibliometrics, where citation patterns among a set of
+  documents, such as scientific papers, are studied. Using so called bibliographic coupling to relate papers  \cite{Kessler1963}
+  -- i.e.\ the similarity between two papers is based on the number of  citations they share -- is a special case of our approach
+  for relating two objects in the correlation graph. Another resemblance is that  these and similar measures are used to cluster
+  scientific papers \cite{Small1973} as well as web pages \cite{Larson96}. The method presented here could be employed in
+  the very same way -- where binary correlations are given by citations -- to efficiently relate a large number of documents.
+
+
+\section{Background}
+
+\subsection{Preliminaries}
+\label{sec:preliminaries}
+
+\subsection{Calculating object similarity}
+
+\subsection{Clustering}
+
+\section{Methods}
+\label{sec:methods}
+
+\subsection{Clustering}
+
+\subsection{Higher-order concept discovery}
+
+\subsection{Algorithms and implementation}
+\label{subsec:algorithmsAndImplementation}
+
+
+\section{Experiments}
+
+\subsection{Words}
+\label{subsec:words}
+
+\subsection{Codons}
+
+\section{Scalability}
+\label{sec: scalability}
+
+
+\section{Conclusions}
+
+Conclusions.
+
+\newpage
+
+\bibliographystyle{abbrv}
+\bibliography{higherorder-sigkdd}
+
+\balancecolumns
+
+\end{document}
+
+% DOCUMENT NOTES - MOVED HERE FROM BEGINNING OF FILE
+% This is "sig-alternate.tex" V2.0 May 2012
+% This file should be compiled with V2.5 of "sig-alternate.cls" May 2012
+%
+% This example file demonstrates the use of the 'sig-alternate.cls'
+% V2.5 LaTeX2e document class file. It is for those submitting
+% articles to ACM Conference Proceedings WHO DO NOT WISH TO
+% STRICTLY ADHERE TO THE SIGS (PUBS-BOARD-ENDORSED) STYLE.
+% The 'sig-alternate.cls' file will produce a similar-looking,
+% albeit, 'tighter' paper resulting in, invariably, fewer pages.
+%
+% ----------------------------------------------------------------------------------------------------------------
+% This .tex file (and associated .cls V2.5) produces:
+%       1) The Permission Statement
+%       2) The Conference (location) Info information
+%       3) The Copyright Line with ACM data
+%       4) NO page numbers
+%
+% as against the acm_proc_article-sp.cls file which
+% DOES NOT produce 1) thru' 3) above.
+%
+% Using 'sig-alternate.cls' you have control, however, from within
+% the source .tex file, over both the CopyrightYear
+% (defaulted to 200X) and the ACM Copyright Data
+% (defaulted to X-XXXXX-XX-X/XX/XX).
+% e.g.
+% \CopyrightYear{2007} will cause 2007 to appear in the copyright line.
+% \crdata{0-12345-67-8/90/12} will cause 0-12345-67-8/90/12 to appear in the copyright line.
+%
+% ---------------------------------------------------------------------------------------------------------------
+% This .tex source is an example which *does* use
+% the .bib file (from which the .bbl file % is produced).
+% REMEMBER HOWEVER: After having produced the .bbl file,
+% and prior to final submission, you *NEED* to 'insert'
+% your .bbl file into your source .tex file so as to provide
+% ONE 'self-contained' source file.
+%
+% ================= IF YOU HAVE QUESTIONS =======================
+% Questions regarding the SIGS styles, SIGS policies and
+% procedures, Conferences etc. should be sent to
+% Adrienne Griscti (griscti@acm.org)
+%
+% Technical questions _only_ to
+% Gerald Murray (murray@hq.acm.org)
+% ===============================================================
+%
+% For tracking purposes - this is V2.0 - May 2012
+
+%
+% --- Author Metadata here ---
+%\conferenceinfo{WOODSTOCK}{'97 El Paso, Texas USA}
+%\CopyrightYear{2007} % Allows default copyright year (20XX) to be over-ridden - IF NEED BE.
+%\crdata{0-12345-67-8/90/01}  % Allows default copyright data (0-89791-88-6/97/05) to be over-ridden - IF NEED BE.
+% --- End of Author Metadata ---

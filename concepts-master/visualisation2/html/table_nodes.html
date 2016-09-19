@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+
+<html>
+    
+<head>
+    
+    <meta charset="UTF-8">
+    <title>Table</title>
+    
+    <link rel="stylesheet"
+          type="text/css" 
+          href="../jslib/jquery-easyui/1.4.2/themes/bootstrap/easyui.css">
+    
+    <link rel="stylesheet" 
+          type="text/css" 
+          href="../jslib/jquery-easyui/1.4.2/themes/icon.css">
+    
+    <script src="../jslib/jquery/1.11.2/jquery.min.js">
+    </script>
+    
+    <script src="../jslib/jquery-easyui/1.4.2/jquery.easyui.min.js">
+    </script>
+    
+</head>
+    
+<body>
+    
+    <table id= "data_grid"
+           class= "easyui-datagrid" 
+           title= "Nodes" 
+           style= "width:250px;height:700px"
+    >
+    
+        <thead>
+            
+            <tr>
+                
+                <th data-options="field:'name',
+                                  width:100,
+                                  halign:'center'"
+                    > Name </th>
+                
+                <th data-options="field:'sgroup',
+                                  width:70,
+                                  halign:'center'"
+                    > Set Group </th>
+                
+                <th data-options="field:'group',
+                                  width:50,
+                                  halign:'center'"
+                    > Group </th>
+                
+            </tr>
+            
+        </thead>
+        
+    </table>
+    
+    <script>
+    
+        function draw(data){
+            
+            var nodes= JSON.parse(JSON.stringify(data.nodes));
+
+            $('#data_grid').datagrid({data: nodes});
+
+        }
+        
+    </script>
+    
+</body>
+    
+</html>

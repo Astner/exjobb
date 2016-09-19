@@ -1,0 +1,57 @@
+# Project specific
+
+/code/data
+/code/output
+/experimental/higherorder/local
+
+# Tex
+*.class
+*.log
+*.aux
+*.synctex.gz
+*.bbl
+*.blg
+*.out
+
+# sbt specific
+.cache/
+.history/
+.lib/
+dist/*
+target/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+
+# sbt local configurations
+local.sbt
+
+# Scala-IDE specific
+.scala_dependencies
+.worksheet
+
+# JetBrains IDEA
+.idea/
+
+# Ignore pdf files except for specified directories
+*.pdf
+!/references/*.pdf
+!**/figures/*.pdf
+
+# R and Rstudio specific
+*.RData
+*.Rproj
+*.Rhistory
+.Rproj.user/
+.Rproj.user
+
+# Python, general
+*.pyc
+.Python
+pip-selfcheck.json
+
+# Specific Python virtualenv artifacts
+experimental/higherorder/formats/midi/notecontext/bin
+experimental/higherorder/formats/midi/notecontext/include
+experimental/higherorder/formats/midi/notecontext/lib

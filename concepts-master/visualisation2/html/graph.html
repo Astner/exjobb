@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>Graph View</title>
+
+<style>
+
+body {
+  font-family: "Helvetica Neue", Helvetica, sans-serif;
+}
+
+.link {
+  fill: none;
+  stroke: #999;
+  stroke-width: 1.5px;
+  stroke-opacity: .6;
+}
+
+line.link:hover {
+  stroke: orange;
+}
+
+.highlink {
+  fill: none;
+  stroke: #88F;
+  stroke-width: 1.5px;
+  stroke-opacity: .8;
+}
+
+.node circle {
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+
+text {
+  font: 10px sans-serif;
+  pointer-events: none;
+}
+
+form {
+  margin-top: 5px;
+  margin-left: 8px;
+  text-align: left;
+  vertical-align: middle;
+  font-size: 12px;
+  opacity:0.7;
+}
+
+form label
+{
+  vertical-align:middle;
+}
+
+input {
+  margin-left: 0.0em;
+}
+
+#thresholdSlider
+{
+  vertical-align: middle;
+}
+
+</style>
+
+<body>
+    
+<script src= "../jslib/d3/d3.5.5.min.js"> </script>
+<script src= "../js/node_group.js">       </script>
+    
+<form>
+    <label for="thresholdSlider">Link threshold: 0</label>
+    <input type="range" 
+           id="thresholdSlider" 
+           name="points" 
+           value = 0 
+           min="0" 
+           max="100" 
+           onchange="threshold(this.value)">
+    <label for="thresholdSlider">1</label>
+</form>
+    <br>
+<div id= "gvis"> <div>
+    
+<script>
+    
+
+// ---
+    
+var showText= 1;
+
+var margin = {top: -5, right: -5, bottom: -5, left: -5};
+    
+var w= 2000;
+var h= (2000);
+    
+var width = w - margin.left - margin.right,
+    height = h - margin.top - margin.bottom;
+
+var zoom = d3.behavior.zoom()
+    .scaleExtent([0.125, 8])
+    .on("zoom", zoomed);
+
+var color = d3.scale.category20();
+
+var force = d3.layout.force()
+    .charge(-50)
+    .linkDistance(30)
+    .size([width, height]);
+
+var svg = d3.select("#gvis").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .style("background-color", "rgb(247,247,247)")
+//    .style("border", "1px solid black")
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.right + ")")
+    .call(zoom);
+
+var rect = svg.append("rect")
+    .attr("width", width)
+    .attr("height", height)
+    .style("fill", "none")
+    .style("pointer-events", "all");
+
+var container = svg.append("g");
+
+var graph;
+var graph_rec;
+var link;
+var gnodes;
+var node;
+    
+var sgroup;
+
+//Toggle stores whether the highlighting is on
+var toggle = 0;
+//Create an array logging what is connected to what
+var linkedByIndex = {};
+
+// Read JSON data and nuild graph with necessary data structures
+    
+    
+function draw(consolePrint, sgroup, graph_data) {
+    
+  graph_rec= graph_data;
+    
+  graph= JSON.parse(JSON.stringify(graph_data));
+    
+    
+  for (i = 0; i < graph.nodes.length; i++) {
+    linkedByIndex[i + "," + i] = 1;
+  };
+  graph.links.forEach(function (d) {
+    linkedByIndex[d.source + "," + d.target] = 1;
+  });
+
+    //console.log(linkedByIndex);
+  force
+      .nodes(graph.nodes)
+      .links(graph.links)
+      .start();
+
+  link = container.selectAll(".link")
+  .data(graph.links)
+  .enter().append("line")
+  .attr("class", "link")
+  .style("stroke-width", function(d) { return d.value * 5.0; });
+
+  link.append("title")
+  .text(function(d) { return d.value; });
+
+  // Make sure pan does not override node dragging
+  var drag = force.drag()
+    .on("dragstart", function(d) {
+    d3.event.sourceEvent.stopPropagation();
+  });
+
+  // Create the node groups under svg
+  gnodes = container.selectAll('g.gnode')
+  .data(graph.nodes)
+  .enter()
+  .append('g') 
+  .attr("id", function(d){return d.name}) // 
+  .classed('gnode', true)
+  
+  .on("mouseover", nodemouseover)
+  .on("mouseout", nodemouseout)
+  .on('dblclick', connectedNodes)
+  .on('click', clickNodes)
+  .call(force.drag);
+
+  // Add one circle in each group
+  node = gnodes.append("circle")
+  .attr("class", "node")
+  .attr("r", 5)
+  .style("fill", function(d) { return color(d.group); });
+
+  if (showText) {
+    // Append the labels to each group
+    var labels = gnodes.append("text")
+    .attr("x", 8)
+    .attr("dy", ".35em")
+    .text(function(d) { return d.name; });
+  }
+  else {
+    node.append("title")
+    .text(function(d) { return d.name; });
+  }
+
+  force.on("tick", function() {
+    // Update the links
+    link.attr("x1", function(d) { return d.source.x; })
+    .attr("y1", function(d) { return d.source.y; })
+    .attr("x2", function(d) { return d.target.x; })
+    .attr("y2", function(d) { return d.target.y; });
+    // Translate the node groups
+    gnodes.attr("transform", function(d) {
+      return 'translate(' + [d.x, d.y] + ')';
+    });
+      
+  });
+
+    // ---
+    
+    function lookUpNode(name){
+        return container.selectAll('g.gnode#' + name).node().__data__;
+    }
+    
+    function clickNodes(d){
+        
+        if (d3.event.shiftKey){
+           
+            consolePrint("Name: " + d.name + ", " 
+                      + "Group: " + d.group + ", "
+                      + "SGroup: " + d.sgroup + " ,"
+                      + "Weight: " + d.index);
+        
+        } else if (d3.event.ctrlKey || d3.event.metaKey){
+            
+            var node_name = prompt("Enter Node Name", "gov");
+    
+            if (node_name) {
+                
+                d= lookUpNode(node_name);
+                
+                consolePrint("Name: " + d.name + ", " 
+                          + "Group: " + d.group + ", "
+                //        + "SGroup: " + d.sgroup + " ,"
+                          + "Weight: " + d.index);
+        
+                container.selectAll('g.gnode#' + node_name)
+                     .select("circle")
+                       .attr("r", 14)
+                       .style("fill", "rgb(220, 0, 0)");
+        
+            };
+        }
+    }
+    
+    // ---
+    
+    return {markNode: function(node_name){
+                            container.selectAll('g.gnode#' + node_name)
+                                     .select("circle")
+                                     .style("fill", "rgb(220, 0, 0)");
+                        },
+            
+            unMarkNode: function(node_name){
+                            container.selectAll('g.gnode#' + node_name)
+                                     .select("circle")
+                                     .attr("r", 5)
+                                     .style("fill", color(0)); 
+                                     // For now all nodes are group "0"
+                         }
+            };
+}
+
+// ---
+ 
+//var insp= d3.select("body").append("div");
+
+// On mouseover on node
+function nodemouseover() {
+    
+  d3.select(this).select("circle").transition()
+  .duration(150)
+  .style("fill", function(d) {return color(d.group); })
+  .attr("r", 7);
+}
+
+// On mouseout from node
+function nodemouseout() {
+  d3.select(this).select("circle").transition()
+  .duration(150)
+  .attr("r", 5);
+}
+
+// Zoom and pan
+function zoomed() {
+  container.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+}
+
+
+// Adjust link threshold
+function threshold(thresh) {
+  var scthresh = thresh / 100;
+  graph.links.splice(0, graph.links.length);
+  for (var i = 0; i < graph_rec.links.length; i++) {
+    if (graph_rec.links[i].value > scthresh) {graph.links.push(graph_rec.links[i]);}
+  }
+  restart();
+}
+
+// Restart visualisation after node and link changes
+function restart() {
+  link = link.data(graph.links);
+  link.exit().remove();
+  link.enter().insert("line", "g.gnode").
+  attr("class", "link")
+  .style("stroke-width", function(d) { return d.value * 5.0; });
+  link.append("title")
+  .text(function(d) { return d.value; });
+  //gnodes = gnodes.data(graph.nodes);
+  //gnodes.enter().insert("circle", ".cursor").attr("class", "node").attr("r", 5).call(force.drag);
+  force.start();
+}
+
+// Look up whether a pair are neighbours or not
+function neighboring(a, b) {
+  return linkedByIndex[a.index + "," + b.index];
+}
+
+// Toogle opacity for connected nodes
+function connectedNodes(d) {
+  d3.event.stopPropagation();
+  if (toggle == 0) {
+    // Reduce the opacity of all but the neighbouring nodes
+      
+    gnodes.style("opacity", function (o) {
+        if (d3.event.shiftKey && (d3.event.ctrlKey || d3.event.metaKey)){
+            return d.sgroup == o.sgroup ? 1 : 0.1;
+        } else {
+            return neighboring(d, o) | neighboring(o, d) ? 1 : 0.1;
+        }
+    });
+    link.style("opacity", function (o) {
+      return d.index==o.source.index | d.index==o.target.index ? 1 : 0.1;
+    });
+    toggle = 1;
+  } else {
+        // Put everything back to opacity 1
+        gnodes.style("opacity", 1);
+        link.style("opacity", 1);
+        toggle = 0;
+  }
+}
+
+    
+</script>
+    
+</body>

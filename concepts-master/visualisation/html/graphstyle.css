@@ -1,0 +1,44 @@
+html {
+  min-width: 1140px;
+}
+
+body {
+  font-family: "Helvetica Neue", Helvetica, sans-serif;
+  margin: 1em auto 0em auto;
+  position: relative;
+  tab-size: 2;
+  width: 1060px;
+}
+
+h1 {
+  margin-left: -0.07em;
+  margin-top: 0em;
+  margin-bottom: 0.1em;
+  font-size: 60px;
+  font-weight: 300;
+  letter-spacing: -2px;
+  text-rendering: optimizeLegibility;
+}
+
+p {
+  font-size: 11px;
+  line-height: 1.2em;
+}
+
+form {
+  margin-left: -0.07em;
+  text-align: right;
+}
+
+footer {
+  margin-top: 4em;
+  font-weight: 300;
+  color: #888;
+  text-align: right;
+}
+
+iframe {
+  width: 1060px;
+  height: 800px;
+  border: 1px solid #DEDEDE;
+}

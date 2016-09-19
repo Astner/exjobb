@@ -1,0 +1,210 @@
+\documentclass{sig-alternate}
+\usepackage{mathtools}
+\usepackage{color}
+
+% For commenting
+\newcommand{\comment}[1]{{\small \color{red} {#1}} \normalcolor}
+% Use this line for leaving out comments
+%\newcommand{\comment}[1]{}
+
+% Notation commands (change all by changing here)
+% Defina a capital Rho
+\newcommand{\Rho}{\mathrm{P}}
+% Concept relation
+\newcommand{\rn}[1]{\rho_{#1}}
+% Concept L1 norm
+\newcommand{\rns}[1]{|\rn{#1}|_1}
+% Concept relation threshold
+\newcommand{\mrn}[1]{\tau_{#1}}
+% Discarded concept relation sum
+\newcommand{\drns}[1]{|\check{\rho}_{#1}|_1}
+% Kept concept relation sum
+\newcommand{\krns}[1]{|\hat{\rho}_{#1}|_1}
+% Concept relation vector
+\newcommand{\rv}{\Rho}
+
+% Concept similarity
+\newcommand{\sy}[1]{\sigma_{#1}}
+% Approximate concept similarity
+\newcommand{\asy}[1]{\tilde{\sigma}_{#1}}
+% L1 norm of difference
+\newcommand{\nm}[1]{L_1(#1)}
+\newcommand{\dnm}[2]{|\rn{#1}-\rn{#2}|_1}
+% Approximate L_1 norm
+\newcommand{\anm}[1]{\tilde{L}_1(#1)}
+
+\hyphenation{adap-ta-tion dis-t-ri-bu-ted de-tec-tion net-wo-rk cha-n-ges}
+
+\begin{document}
+
+\title{Higher-order concept discovery through correlativity and commutability}
+
+\numberofauthors{3}
+\author{
+\alignauthor
+Olof G\"{o}rnerup\\ %\titlenote{}\\
+       \affaddr{Swedish Institute of}\\
+       \affaddr{Computer Science (SICS)}\\
+       \affaddr{SE-164 29 Kista, Sweden}\\
+       \email{olof@sics.se}
+\alignauthor
+Daniel Gillblad\\ %\titlenote{}\\
+       \affaddr{Swedish Institute of}\\
+       \affaddr{Computer Science (SICS)}\\
+       \affaddr{SE-164 29 Kista, Sweden}\\
+       \email{dgi@sics.se}
+\alignauthor
+Theodore Vasiloudis\\ %\titlenote{}\\
+       \affaddr{Swedish Institute of}\\
+       \affaddr{Computer Science (SICS)}\\
+       \affaddr{SE-164 29 Kista, Sweden}\\
+       \email{tvas@sics.se}
+\and
+\alignauthor
+Erik Ylip\"a\"a\\ %\titlenote{}\\
+       \affaddr{Swedish Institute of}\\
+       \affaddr{Computer Science (SICS)}\\
+       \affaddr{SE-164 29 Kista, Sweden}\\
+       \email{ylipaa@sics.se}
+%\and  % use '\and' if you need 'another row' of author names
+}
+
+\maketitle
+\begin{abstract}
+\begin{sloppypar}
+Notes on higher-order concept discovery (KDD-paper as starting point).
+\end{sloppypar}
+\end{abstract}
+
+\category{I.2.6}{Artificial Intelligence}{Analogies}
+\category{I.5.3}{Clustering}{Algorithms, Similarity measures}
+\category{H.2.8}{Database Management}{Database Applications -- Data Mining}
+
+\terms{Algorithms, Design, Experimentation}
+
+\keywords{Concept discovery, graph algorithms, community detection, clustering}
+
+\section{Introduction}
+
+We propose a graph-based method for discovering higher order concepts from large data
+sets \cite{gornerup-2015}. A \emph{concept} is intentionally left vague since it can be many different things, such as tokens in a text,
+music tracks in a playlist, people in a social network or states in a stochastic process. We narrow down the scope
+slightly by only considering concepts that exhibit pairwise relations, e.g.\ in terms of spatial, temporal or social
+correlations, which allows us to represent a collection of concepts and their inter-dependencies as a graph.
+
+[Correlation to similarity transformation]
+
+[Clustering / max-clique to find concepts]
+
+Using this, we can build hierarchical concept models.
+The concepts discovered as clusters in the similarity graph essentially represent OR-relations:
+All constituent objects of a cluster are commutable, and the higher-order concept can be said to be observed if any of its constituents are. We will refer to such concepts as \emph{commutative}.
+Analogously, strong clusters detected in the correlation graph could be considered to represent AND-relations,
+where the corresponding higher-order concept is observed when all of its constituents are. We will refer to such concepts as \emph{correlative}.
+Both these types of
+higher-order concepts can be identified, brought back into the estimation of the correlation graph, and the process
+iterated, allowing for the discovery of complex higher-order relations. Thus, our approach can be summarized as
+\begin{enumerate}
+\item Create a \emph{correlation graph} that describes the pairwise correlations between all concepts. A correlation may here be any relationship measure such as
+the frequency of co-occurrence, a correlation measure such as mutual information, a weighted edge in a graph, a
+transition probability in a stochastic process.
+\item Transform the correlation graph to a \emph{similarity graph} by comparing the set of correlation of each concept
+to the set of correlations of all other concepts -- the more similar set of correlations, the higher the weighted edge in the
+similarity graph. Here, we base our similarity measure on the $L_1$-norm.
+\item Find clusters in terms of strongly connected communities in a) the correlation graph and
+b) the similarity graph. These clusters contain concepts
+that are highly inter-dependant or play a similar role in data (i.e. they are commutable) respectively. Each cluster is considered to represent a higher-order concept.
+\item Insert all relevant clusters as new concepts into the correlation graph and re-iterate the procedure, starting with the estimation of the correlation graph, including new correlative- and commutative concepts.
+\end{enumerate}
+
+Benefits of the approach include
+\begin{itemize}
+\item Representing all objects and their correlations in graphs allow us to capture higher-scale
+structures among objects, such ambiguity, concept hierarchies, and object ontologies, both in terms of dependencies and
+similarities, in a straightforward manner.
+\end{itemize}
+
+%\section{Related work}
+
+\section{Background}
+
+\subsection{Preliminaries}
+\label{sec:preliminaries}
+
+Let $C = \{i\}_{i=1}^n$ be a set of \emph{concepts}, where each concept has a correlation, $\rn{i,j}$, to
+each other concept. This relation can be expressed in terms of real values, probabilities, booleans or something
+else, that, for instance, represent a correlation measure, binary or weighted neighbourhood relation in a graph,
+co-occurrence probabilities in a corpus, or transition probabilities in a Markov chain.
+
+The \emph{context} of a concept $i$ is considered to be its vector of relations to every other concept, $\rn{i} =
+(\rn{i,j})_{j=1}^n$. Under the key assumption that a concept is characterized by its context, we can formulate the
+similarity between two concepts $i$ and $j$, denoted $\sy{i,j}$, in terms of a similarity measure between their
+respective contexts.
+Here we define $\sy{i,j}$ to be one minus the relative $L_1$-norm of the difference between $\rn{i}$ and $\rn{j}$:
+%Here we define $\sy{i,j}$ to be the inverse of the relative $L_1$-norm of the difference between $\rn{i}$ and $\rn{j}$:
+\begin{equation}\label{eq:sim}
+\sy{i,j} = 1 - \frac{\dnm{i}{j}}{\rns{i} + \rns{j}},
+%\sy{i,j} = \frac{\rns{i} + \rns{j}}{\dnm{i}{j}},
+%\sy{i,j} = \frac{\rns{i} + \rns{j}}{\nm{i,j}},
+\end{equation}
+where
+\begin{equation}\label{eq:totrel}
+\rns{i} = \sum_{k \in C} | \rn{i,k}|
+\end{equation}
+and
+\begin{equation}\label{}
+\dnm{i}{j} =  \sum_{k \in C} | \rn{i,k} - \rn{j,k} |,
+%\nm{i,j} =  \sum_{k \in C} | \rn{i,k} - \rn{j,k} |.
+\end{equation}
+denoted $\nm{i,j}$ for short.
+%\comment{Consider using definition $\sy{i,j} = 1-\dnm{i}{j}/(\rns{i} + \rns{j})$ instead, such that $\sy{i,j} \in [0, 1]$ .}
+That is, we normalize the absolute $L_1$-norm of the difference between $i$ and $j$:s context vectors with the maximum
+possible norm of the difference, as given by $\rns{i} + \rns{j}$, and then subtract the result from one in order to
+transform it to a similarity measure bounded by 0 and 1, $\sy{i,j} \in [0, 1]$.%invert the resulting relative norm in order to transform it to a similarity measure.
+
+Since concepts are discrete and have pairwise relations, we can represent $C$ and $\rn{i,j}$ as a directed graph,
+$\mathcal{R} = (C, R)$ where vertices constitute concepts, and where edges $r_{i,j} \in R$ have weights $\rn{i,j}$. We
+term this the \emph{correlation graph} of $C$ with respect to $\rn{i,j}$. In principle this is a complete graph since
+every vertex has a relation to every other vertex (including itself) through $\rn{i,j}$. However, we define the graph
+such that there is only an edge between two vertices $i$ and $j$ if their corresponding concepts have a degree of
+similarity, i.e.\ when $\dnm{i}{j} < \rns{i} + \rns{j}$.
+
+Analogously, the \emph{similarity graph} of $C$ with regard to $\rn{i,j}$, denoted $\mathcal{S} = (C, S)$, is defined
+to be an undirected graph where weights of edges $s_{i,j} \in S$ instead are given by $\sy{i,j}$. %Note that $\mathcal{S}$ can also be a correlation graph (with respect to $\sy{i,j}$) that is associated with another, higher-order, similarity graph that in turn is associated with yet another similarity graph and so forth. \comment{This requires that we map $\mathcal{S}$ to a directed graph.}
+
+By \emph{higher-order concept} we mean a group of concepts that are approximately similar -- forming a cluster in the similarity graph -- and therefore approximately interchangeable in their respective contexts.
+
+\section{Methods}
+\label{sec:methods}
+
+\subsection{Clustering}
+\begin{sloppypar}
+After transforming a correlation graph to a similarity graph, the latter typically exhibits tightly grouped
+concepts that are similar according to measure $\sy{i,j}$. We can therefore identify higher-order concepts by
+clustering the vertices, which is also known as community detection. There is an abundance of available algorithms
+(see \cite{Fortunato-2010} for a review) with varying suitability with regard to accuracy and scalability. However, it is
+beyond the scope of this paper to evaluate the performance of different clustering algorithms in this context.
+For this reason, and in order to facilitate
+our understanding for the properties of the method outlined in \ref{sec:similaritycalculations},
+we choose to use a simple and transparent clustering method. The approach resembles standard distributed algorithms
+for identifying connected components in graphs and works as follows: We begin by initializing
+each vertex $i$ to form its own cluster, indexed by $c_i = i$. Then, for each vertex $i$, we set its cluster index to be the smallest cluster
+index of $i$:s neighbours $j$ for which $\sy{i,j} \geq \sigma_{min}$, where $\sigma_{min}$ is a threshold value. This is repeated until no more cluster indices are changed. In this way, cluster memberships are propagated within
+components that are separated by edges with weights $\sy{i,j} \leq  \sigma_{min}$. The interpretation of --
+and rationale for -- this approach is that clusters in the graph are groups of vertices that are interlinked with a certain degree of similarity,
+as specified by $\sigma_{min}$, and where the clusters, in turn, are interlinked with weaker similarity relations.
+\end{sloppypar}
+
+
+\section{Experiments}
+
+\section{Conclusions}
+
+We present a conceptually simple method for discovering complex higher order concepts, expressed as a set of of graph operations.
+
+\bibliographystyle{abbrv}
+\bibliography{concepts-higherorder}
+
+\balancecolumns
+
+\end{document}

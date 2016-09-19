@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<head>
+    
+    <title>Test: Node Group Maker</title>
+    
+    <script src= "../jslib/d3/d3.5.5.min.js"> </script>
+    <script src= "../js/node_group.js">     </script>
+    
+</head>
+
+
+<body>
+    
+  <h2>Node Groups:</h2>
+  <pre id= "pre1"></pre>
+    
+  <h2>"Data" with group id's:</h2>
+  <pre id= "pre2"></pre>
+    
+  <script>
+    
+    d3.json("../data/cncpt.json",
+            function(error, data) {
+        
+                var group_set= node_group.mkGroupSet(data);
+                var str_group_set= JSON.stringify(group_set, null, 2);
+        
+                //console.log(str_group_set);
+                d3.select("#pre1").text(str_group_set);
+        
+                var data= node_group.setGroupId("sgroup", data, group_set);
+                var str_data= JSON.stringify(data.nodes, null, 2);
+        
+                //console.log(str_data);
+                d3.select("#pre2").text(str_data);
+        
+    });
+    
+    
+  </script>
+
+
+</body>

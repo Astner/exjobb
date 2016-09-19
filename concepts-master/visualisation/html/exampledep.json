@@ -1,0 +1,24 @@
+{
+  "nodes":[
+    {"name":"A","group":1},
+    {"name":"B","group":1},
+    {"name":"C","group":1},
+    {"name":"D","group":1},
+    {"name":"E","group":1},
+    {"name":"F","group":1},
+    {"name":"G","group":1}
+  ],
+  "links":[
+    {"source":0,"target":1,"value":0.2},
+    {"source":0,"target":2,"value":0.2},
+    {"source":0,"target":3,"value":0.2},
+    {"source":0,"target":4,"value":0.2},
+    {"source":5,"target":1,"value":0.2},
+    {"source":5,"target":2,"value":0.2},
+    {"source":5,"target":3,"value":0.2},
+    {"source":6,"target":1,"value":0.2},
+    {"source":6,"target":2,"value":0.2},
+    {"source":6,"target":3,"value":0.2},
+    {"source":6,"target":4,"value":0.2}
+  ]
+}

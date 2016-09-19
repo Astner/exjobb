@@ -1,0 +1,1584 @@
+
+\documentclass{kais}
+
+\usepackage{wrapfig,epsf}
+\usepackage[dcucite]{harvard}
+
+\usepackage{mathtools}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage{courier}
+\usepackage{listings}
+
+\lstset{basicstyle=\small\ttfamily} 
+
+\newtheorem{defi}{Definition}[section]
+\newtheorem{property}{Property}[section]
+\newtheorem{algorithm}{Algorithm}[section]
+
+\newcommand\changenum{%
+  \renewcommand\labelenumi{\theenumi}%
+  \renewcommand{\theenumi}{(\arabic{enumi})}%
+}
+
+\newcommand\changepnum{%
+  \renewcommand\labelenumi{\theenumi}%
+  \renewcommand{\theenumi}{($P_\arabic{enumi}$)}%
+}
+
+\bibliographystyle{agsm}
+\citationmode{abbr}
+
+% For commenting
+%\newcommand{\comment}[1]{{\small \color{red} {#1}} \normalcolor}
+% Use this line for leaving out comments
+\newcommand{\comment}[1]{}
+
+% Todo
+%\newcommand{\todo}[1]{{\small \bf \color{blue} {#1}} \normalcolor}
+% Use this line to leave out
+\newcommand{\todo}[1]{}
+
+% Notation commands (change all by changing here)
+% Defina a capital Rho
+\newcommand{\Rho}{\mathrm{P}}
+% Concept relation
+\newcommand{\rn}[1]{\rho_{#1}}
+% Concept L1 norm
+\newcommand{\rns}[1]{|\rn{#1}|_1}
+% Concept relation threshold
+\newcommand{\mrn}[1]{\tau_{#1}}
+% Discarded concept relation sum
+\newcommand{\drns}[1]{|\check{\rho}_{#1}|_1}
+% Kept concept relation sum
+\newcommand{\krns}[1]{|\hat{\rho}_{#1}|_1}
+% Concept relation vector
+\newcommand{\rv}{\Rho}
+
+% Concept similarity
+\newcommand{\sy}[1]{\sigma_{#1}}
+% Approximate concept similarity
+\newcommand{\asy}[1]{\tilde{\sigma}_{#1}}
+% L1 norm of difference
+\newcommand{\nm}[1]{L_1(#1)}
+\newcommand{\dnm}[2]{|\rn{#1}-\rn{#2}|_1}
+% Approximate L_1 norm
+\newcommand{\anm}[1]{\tilde{L}_1(#1)}
+
+\received{Nov 12, 2015}
+\revised{Jun 30, 2016}
+\accepted{Jul 16, 2016}
+
+\pubyear{xxx}
+\pagerange{\pageref{firstpage}--\pageref{lastpage}}
+\volume{xxx}
+
+\begin{document}
+\label{firstpage}
+
+\title{Domain-Agnostic Discovery of Similarities and Concepts at Scale\footnote{This paper is an extended version of \cite{Gornerup2015}.}}
+\shorttitle{Domain-Agnostic Discovery of Similarities and Concepts at Scale}
+
+\author[O. G\"{o}rnerup et al]{Olof G\"{o}rnerup$^1$, Daniel Gillblad$^1$ and Theodore Vasiloudis$^1$\\ 
+$^1$Swedish Institute of Computer Science (SICS), Kista, Sweden}
+
+\maketitle
+
+\begin{abstract}
+Appropriately defining and efficiently calculating similarities from large data sets are often essential
+in data mining, both for gaining understanding of data and generating processes, and for building tractable 
+representations. Given a set of objects and their correlations, we here rely on the premise that each object 
+is characterized by its context, i.e.\ its correlations to the other objects. The similarity between two objects 
+can then be expressed in terms of the similarity between their contexts. In this way, similarity pertains to the 
+general notion that objects are similar if they are exchangeable in the data. We 
+propose a scalable approach for calculating all relevant similarities among objects by relating them 
+in a correlation graph that is transformed to a similarity graph. These graphs can express rich structural 
+properties among objects. Specifically, we show that concepts -- abstractions of objects -- 
+are constituted by groups of similar objects that can be discovered by clustering the objects in the
+similarity graph. These principles and methods are 
+applicable in a wide range of fields, and will here be demonstrated in three domains: computational linguistics, 
+music and molecular biology, where the numbers of objects and correlations range from small to very large.
+\end{abstract}
+
+\begin{keywords}
+Similarity discovery; Concept mining; Distributional semantics; Graph processing
+\end{keywords}
+
+\section{Introduction}
+\label{sec:introduction}
+
+As stated by \citeasnoun{Firth57} and further popularized in the computational linguistics community by \citeasnoun{Church90}, 
+``You shall know a word by the company it keeps''. Based on this principle, underpinned by Harris' distributional hypothesis \cite{Harris54}, 
+there have been substantial efforts to infer semantic and syntactic meaning
+ from words through their effective usage in text \cite{Harispe2015}. Although the same principle has been applied in 
+ different and seemingly distinct domains, such as bibliometrics  \cite{Kessler1963} and bioinformatics 
+ \cite{ravasz2002hierarchical}, generalizing the notion of characterizing objects through 
+their contexts into a broader fundamental principle for similarity discovery is so far largely unexplored.
+
+Generalizing Harris' distributional hypothesis, we argue that the effective semantics of any object, with respect to observed data, are characterized 
+by the context in which it occurs, or in other words, by how it is related (or correlated) to all other objects. The \emph{similarity} 
+between two objects may therefore be formulated in terms of their contexts, or how similar their relations to all other
+objects are.
+A benefit of this is that we can omit the specific functionality or underlying workings of objects, but
+only observe and consider their context patterns. This is highly attractive from a data-driven machine learning
+perspective since it requires very few assumptions about the objects.
+
+With this as a starting point, we propose a graph-based method for discovering similarities from large data
+sets. An \emph{object} is intentionally left vague since it can be many different things, such as
+music tracks in a playlist, people in a social network, tokens in a text or states in a stochastic process. We narrow down the scope
+slightly by only considering objects that exhibit pairwise relations, e.g.\ in terms of spatial, temporal or social
+correlations, which allows us to represent a collection of objects and their inter-dependencies as a graph. Our
+approach, which we call \emph{contextual correlation mining} (CCM), involves two main steps: First, we create a \emph{correlation graph} 
+that describes the pairwise correlations between all objects. A correlation may here be any relationship measure such as the frequency 
+of co-occurrence, a transition probability in a stochastic process, a correlation measure such as mutual information or a weighted edge in a graph. 
+Second, we transform the correlation graph to a \emph{similarity graph} by comparing the set of correlations of each object
+to the sets of correlations of all other objects -- the more similar sets of correlations, the higher the weighted edge in the
+similarity graph.
+
+The correlation graph is either given at the outset, as a Markov model or co-occurrence network for example, or built from data.
+Since there already exists a multitude of approaches for achieving this, see e.g. \cite{Albert2002}, we will here focus on the second 
+step, which we also view as the main technical contribution of this paper. Transforming a correlation graph to a similarity graph 
+is conceptually straightforward, but as an ``all-to-all" similarity
+problem, it is highly challenging in practice. However, since we are considering
+pairwise correlations, we can utilize that similar objects always occur in proximity in the correlation graph (at most one neighbour apart to 
+be specific), which means that it is sufficient to compare objects locally in the graph. This not only drastically reduces the number 
+of necessary comparisons,
+but also facilitates parallelization. Moreover, given that the correlation graph is sparse\footnote{That is, most objects are 
+either completely unrelated or at most negligibly correlated. Two randomly selected persons in a large social network, for 
+instance, most likely do not know each other.} -- which is the case e.g.\ for gene co-expression \cite{Jordan2004}, semantic
+ \cite{Steyvers2005}, word co-occurrence \cite{Cancho2001} and social networks \cite{mislove2007social}, as well as for 
+ many other graphs of interest \cite{Albert2002} -- we can also prune the correlation graph substantially 
+prior to transforming it to a similarity graph while keeping the approximation error low and controllable.
+
+In comparison, related methods are either limited to specific domains 
+or do not scale well with growing number of objects, while the approach presented here is both scalable and agnostic
+with respect to objects and correlation measures. These are merely seen as vertices and edges in a graph, and CCM
+is therefore applicable in a broad range of domains as well as in mixed-data scenarios where several different correlation measures
+may be considered. In this way, we propose a powerful and efficient scheme that distills the essence in many related, and seemingly 
+distinct, methods by using the core principle that objects can be characterized by the contexts in which they occur.
+
+Furthermore, since CCM does not require any intermediate representations of objects and their correlations, such as sparse vectors
+ or neural networks, it is also interpretable and transparent. This enables us to calculate well-understood notions
+of similarity and error among other things. Representing objects, correlations and similarities as graphs will also allow us
+ to capture rich higher-scale structures among objects -- e.g.\ without being constrained by geometric properties such as the triangle 
+inequality -- including ambiguity, hierarchies and ontologies, both in terms of correlations and similarities.
+Rather than representing data in terms of its raw constituents, a central task then is often to discover appropriate levels of abstraction 
+of objects, both for gaining insights about data and by computational necessity. We will here demonstrate that CCM can be used for this purpose. Specifically, we will show 
+that \emph{concepts} -- abstract generalizations of objects -- are constituted by groups of inter-similar objects that play 
+analogous roles in the data, and that we can discover these by clustering the objects in the similarity graph.
+
+Similarities and concepts are both general notions, but discovering these from data in an unsupervised manner has several concrete
+applications. An immediate use of similarity discovery, for example, is in recommendation systems, where sensible recommendations of
+similar music, products, services etc. may be given based on contextual information. Concepts 
+can also be used to overcome the curse of dimensionality in machine learning, where generalizations reduce
+the dimensionality of the state space that needs to be explored. This could be of value in classification tasks for instance, 
+where annotated examples are expressed in terms of concepts rather than raw objects. 
+
+This paper is based on \cite{Gornerup2015}, with the following additions: an extended analysis of approximation error bounds; a description
+and demonstration of an improved vertex clustering algorithm for concept discovery; an extended evaluation, including a comparison with a 
+state-of-the-art word embedding method and a gold standard for word similarity; and a parameter sensitivity analysis with regard to approximation 
+errors and relevant graph measures.
+
+\subsection{Outline}
+The remainder of the paper is outlined as follows: Next we will put the paper in context by giving an overview of the related
+state-of-the-art. A background with preliminaries is presented in Sec.\ \ref{sec:background}, followed by a description of
+proposed methods in Sec.\ \ref{sec:methods}, including theoretical investigations on error bounds and scalability. 
+In Sec.\ \ref{sec:experiments} we demonstrate the versatility of the method by
+applying it in three distinct domains: computational linguistics, music and molecular biology. We also evaluate acquired
+word similarities against a gold standard and compare the result with current the state-of-the-art in word vector embedding;
+demonstrate the applicability of the concept discovery method; perform a parameter sensitivity analysis; and 
+experimentally evaluate scalability properties. The paper is concluded in Sec.\ \ref{sec:conclusions} with a summary of our findings 
+and a discussion on possible future directions.
+
+\section{Related work}
+\label{sec:related work}
+
+The principle of relating objects with respect to contextual information is employed in several different areas, including ontology
+learning, computational linguistics, bioinformatics and bibliometrics. To our knowledge, the method that is closest in spirit to
+ours is SimRank \cite{Jeh2002simrank}, which is a general approach for obtaining similarities between vertices in a graph.
+SimRank is an iterative method that uses the graph structure to derive similarities between objects by relating ``objects that are
+related to similar objects'' \cite{Jeh2002simrank}. The main drawback with their approach, however, is that it is not scalable due to
+a cubic time complexity with the number of vertices in the graph. This has partly been remedied in improved versions of the algorithm,
+such as the one by \citeasnoun{Yu2012simrankOpt}, but these are still too computationally demanding in order to be applicable on
+very large graphs. In comparison, we can comfortably run our algorithm on substantial graphs, doing only a single
+pass over the data.
+\citeasnoun{leicht2006vertex} propose a similarity calculation method which deals with another
+limitation of SimRank, namely that similarities are only calculated for nodes connected by paths of
+even length. The authors propose an alternative iterative method, but it suffers from much of the same scalability
+problems as with SimRank.
+
+In molecular biology, \citeasnoun{ravasz2002hierarchical} propose an approach for finding similar vertices using so called
+topological overlap measures, which they apply on metabolic networks. \citeasnoun{Zhang2005tom}
+generalized this approach for use on weighted gene co-expression networks. As in our case, these methods relate vertices by assigning
+higher similarity scores between vertices that share many neighbors, but since their approaches are primarily tailored for bioinformatics tasks,
+they lack the generality of SimRank and the method presented here.
+  
+In computational linguistics, distributional analysis -- where linguistic items are characterized by
+their relative distributional properties in the data -- has become a fundamental approach \cite{Harris54}. We use
+similar assumptions as a starting point, and when applied to text, the approach can be seen as transforming a graph
+over syntagmatic similarities to one describing paradigmatic similarities \cite{Sahlgren-2006}, in which
+concepts are discovered through clustering. A large number of methods to find semantic similarities have been
+developed -- see \cite{Harispe2015} for a recent review -- from the seminal work by \citeasnoun{Church90}, and 
+\citeasnoun{Brown1992}, to more recent approaches such as GloVe \cite{Pennington2014} and word2vec \cite{Mikolov-2013}. 
+These methods, however, generate vector embeddings of words, and to calculate all similarities among these
+scales quadratically with the number or words at worst. Our method, in contrast, calculates \emph{all} relevant
+similarities at scale, and is not limited to the natural language processing domain.
+Another important difference is that our method builds similarity graphs without 
+using any dimensionality reduction or intermediate representations, such as high-dimensional vectors 
+or difficult-to-interpret neural networks. The advantage of using a direct graph representation is that it allows us to
+understand and reason about higher-scale structures among objects and concepts, such as hierarchical organization, in a straightforward 
+manner using established graph and network methods. Although graph representations are used in natural language processing to relate 
+similar words and documents \cite{Mihalcea2011}, these approaches have several limitations in comparison to our 
+approach, e.g.\ by expecting existing similarity graphs as input, using ad hoc word relations (such as linking words separated 
+by \emph{and} or \emph{or}), requiring part-of-speech tagged data, or by using human curated datasets, such as WordNet \cite{miller1995wordnet}.
+
+Another related area is ontology learning \cite{Wong2012ontology}, which aims to infer taxonomies 
+from corpora and other data sources. While one can draw parallels between our work and this field, the latter is often limited 
+by exclusively considering a specific type of basic building blocks, such as nouns, where these are related in 
+ hierarchies with respect to specific relations, such as \emph{is a} and \emph{part of}. Similarly, context-based similarity
+  discovery can also be viewed as a generalization of methods in bibliometrics, where citation patterns among a set of 
+  documents, such as scientific papers, are studied. Using so called bibliographic coupling to relate papers  \cite{Kessler1963} 
+  -- i.e.\ the similarity between two papers is based on the number of  citations they share -- is a special case of our approach 
+  for relating two objects in the correlation graph. Another resemblance is that  these and similar measures are used to cluster 
+  scientific papers \cite{Small1973} as well as web pages \cite{Larson96}. The method presented here could be employed in 
+  the very same way -- where binary correlations are given by citations -- to efficiently relate a large number of documents.
+
+\section{Background}
+\label{sec:background}
+
+\subsection{Preliminaries}
+\label{sec:preliminaries}
+
+We begin by specifying the terminology used in this paper. Due to the transdisciplinary character of the method, we
+ choose to use general rather than domain-specific terms.
+
+Let $C = \{i\}_{i=1}^n$ be a set of \emph{objects}, where each object has a correlation, $\rn{i,j}$, to
+each other object. This relation can be expressed in terms of real values, booleans or something
+else that, for instance, represent a correlation measure, binary or weighted neighbourhood relation in a graph,
+co-occurrence probabilities in a corpus, or transition probabilities in a Markov chain. An object can for example be a 
+word in text, and the correlations between words can be their co-occurrence probabilities. In another example, objects 
+constitute people, and the correlation between two persons is their strength of acquaintance.
+
+The \emph{context} of an object $i$ is considered to be its vector of relations to every other object, $\rn{i} =
+(\rn{i,j})_{j=1}^n$. In our word example, the context of a word is therefore its correlations to all other words. Analogously, 
+in the people example, the context of a person is all that person's acquaintances.
+
+Under the assumption that an object is characterized by its context, we can formulate the
+similarity between two objects $i$ and $j$, denoted $\sy{i,j}$, in terms of a similarity measure between their
+respective contexts.
+Here we define $\sy{i,j}$ to be 1 subtracted by the relative $L_1$-norm of the difference between $\rn{i}$ and $\rn{j}$:
+\begin{equation}\label{eq:sim}
+\sy{i,j} = 1 - \frac{\dnm{i}{j}}{\rns{i} + \rns{j}},
+\end{equation}
+where
+\begin{equation}\label{eq:totrel}
+\rns{i} = \sum_{k \in C} | \rn{i,k}|
+\end{equation}
+and
+\begin{equation}\label{}
+\dnm{i}{j} =  \sum_{k \in C} | \rn{i,k} - \rn{j,k} |,
+\end{equation}
+denoted $\nm{i,j}$ for short.
+That is, we normalize the absolute $L_1$-norm of the difference between $i$ and $j$:s context vectors with the maximum
+possible norm of the difference, as given by $\rns{i} + \rns{j}$, and then subtract the result from one in order to
+transform it to a similarity measure bounded by 0 and 1, $\sy{i,j} \in [0, 1]$.
+
+Since objects are discrete and have pairwise relations, we can represent $C$ and $\rn{i,j}$ as a directed graph
+(it it directed since the correlations are not necessarily symmetric),
+$\mathcal{R} = (C, R)$, where vertices constitute objects, and where edges $r_{i,j} \in R$ have weights $\rn{i,j}$. We
+term this the \emph{correlation graph} of $C$ with respect to $\rn{i,j}$. In principle this is a complete graph since
+every vertex has a relation to every other vertex (including itself) through $\rn{i,j}$. However, we define the graph
+such that there is only an edge between two vertices $i$ and $j$ if their corresponding objects have a degree of
+similarity, i.e.\ when $\dnm{i}{j} < \rns{i} + \rns{j}$ and $i \neq j$. In our people example, the correlation network 
+is simply a acquaintance network.
+
+Analogously, the \emph{similarity graph} of $C$ with regard to $\rn{i,j}$, denoted $\mathcal{S} = (C, S)$, is defined
+to be an undirected graph where weights of edges $s_{i,j} \in S$ instead are given by $\sy{i,j}$.
+
+By \emph{concept} we mean a group of objects that are approximately similar -- forming a cluster in 
+the similarity graph -- and therefore approximately interchangeable in their respective contexts. In the word example 
+this may correspond to a group of semantically and/or syntactically similar words (e.g.\ termed \emph{semantic community} 
+or \emph{topic} in the natural language processing community), whereas in the people example, a concept is a group of 
+people that have similar circles of acquaintances, such as a group of colleagues.
+
+\subsection{Example}
+
+\begin{figure}
+\centerline{\includegraphics[width=0.65\columnwidth]{figures/examplegraphs.pdf}}
+\caption{A correlation graph is transformed to a similarity graph in which clustering is performed.}
+\label{fig:examplegraphs}
+\end{figure}
+
+As a simple stylized example, consider the set of objects $C = \{a,b,c,d,e,f,g\}$ with the symmetric, binary correlation 
+graph shown to the left in Fig.\ \ref{fig:examplegraphs}. Transforming this correlation graph to the similarity graph shown in 
+the same figure using Eq.\ \ref{eq:sim}, the pairwise similarities become positive when two objects have overlapping contexts. 
+Each of the two clusters in the similarity graph is then identified as a concept.
+
+Note that in the case of the binary relationship graph, the $L_1$-norm between two objects, $i$ and $j$, is given by the 
+number of neighbours that they do not share:
+\begin{equation}
+\dnm{i}{j} = |n_i \cup n_j| - |n_i \cap n_j| = |n_i| + |n_j| - 2 |n_i \cap n_j|,
+\label{eq:binarynorm}
+\end{equation}
+where $n_i$ and $n_j$ are the neighbourhoods of $i$ and $j$. Since the maximum possible norm of the difference is $|n_i| + |n_j|$, 
+the similarity between $i$ and $j$ becomes
+\begin{equation}
+\sy{i,j} = 1 - \frac{|n_i| + |n_j| - 2 |n_i \cap n_j|}{|n_i| + |n_j|} = \frac{2 |n_i \cap n_j|}{|n_i| + |n_j|},
+\label{eq:binaryrelnorm}
+\end{equation}
+which is known as the S{\o}rensen-Dice coefficient \cite{Dice45,Sorensen48}, that, in turn, is analogous to the commonly 
+used Jaccard coefficient \cite{Jaccard1912} through a monotonic transformation.
+
+\section{Methods}
+\label{sec:methods}
+
+\subsection{Similarity calculations}
+\label{sec:similaritycalculations}
+
+In order to efficiently and scalably transform a correlation graph into a similarity graph, we utilize two observations
+concerning the correlation graph with regard to locality and sparseness. 
+Firstly, according to our definition of similarity, an object only has a degree of similarity to its second-order
+neighbours (its neighbours' neighbours) in the
+correlation graph $\mathcal{R}$. Let $n_i$ and $n_j$ be the neighbouring vertices of $i$ and $j$ respectively, and $\rn{i,
+k} = 0$ if $k \not\in n_i$. Then
+\begin{eqnarray}
+\nm{i,j}  & = &
+\sum_{k \in n_i}  |\rn{i, k}| -  \sum_{\mathclap{k \in n_i \cap n_j}}  |\rn{i, k}|
++  \sum_{k \in n_j}  |\rn{j, k}| -  \sum_{\mathclap{k \in n_i \cap n_j}}  |\rn{j, k}|
++  \sum_{\mathclap{k \in n_i \cap n_j}} |\rn{i, k} - \rn{j, k}| \notag\\
+& = & \rns{i} + \rns{j} + \Lambda_{i,j}, 
+\label{eq:l1terms}
+\end{eqnarray}
+where
+\begin{equation}
+\Lambda_{i,j} = \sum_{\mathclap{k \in n_i \cap n_j}} (|\rn{i, k} - \rn{j, k}| - |\rn{i, k}| - |\rn{j, k}|)
+\label{eq:l1common}
+\end{equation}
+When calculating Eq.\ \ref{eq:sim} it is therefore sufficient to compare differences between weights $\rn{i, k}$ and
+$\rn{j, k}$ of edges from $i$ and $j$ to neighbours $k$ that $i$ and $j$ have in common, given that we have the weight
+sums of outgoing edges of $i$ and $j$.
+In practice, we generate a similarity graph by first summing weights of outgoing edges per vertex, and then building an
+intermediate undirected two-hop multigraph of $\mathcal{S}$, where an edge $(i, j)$ that corresponds to a hop through
+$k$ in $\mathcal{S}$ has weight $|\rn{i, k} - \rn{j, k}| - |\rn{i, k}| - |\rn{j, k}|$. The $L_1$-norm between $i$ and
+$j$ is then calculated by summing the weights of all edges between $i$ and $j$ in the multigraph according to Eq.\
+\ref{eq:l1common}, and adding this to the edge weight sums of $i$ and $j$.
+
+Just as our approach is applicable for different correlation measures, it is not strictly limited to the $L_1$-norm. Using 
+other distance measures is also possible, given that these can be decomposed in a way akin to Eq.~\ref{eq:l1terms}. 
+
+\subsubsection{Approximations}
+\label{sec:approximations}
+Even though we only need to consider shared neighbours when calculating the similarities between objects, these
+calculations still scale unfavorably as the sum of the square of in-degrees per vertex, since we consider all pairs of
+incoming edges of vertex $k$ when generating two-hop edges. We therefore need to approximate the similarity measure by
+reducing in-degrees. To be able to determine whether a certain object distance with respect to a distance measure $D$ is
+relevant or not, typically we would like to ensure that the error $E_{D}(i,j)$ in any specific distance approximation
+is less than a fixed level $\theta_D$,
+\begin{equation}
+E_{D}(i,j) \leq \theta_D
+\end{equation}
+and more specifically for the $L_1$-norm approximated by $\tilde{L}_1$,
+\begin{equation}
+E_1(i,j) = | \nm{i,j}  - \anm{i,j}  | \leq \theta_1.
+\end{equation}
+If we would like to remove terms by approximating by zero while keeping the total approximation error $E_1(i,j)$ 
+as small as possible, we should remove the smallest absolute correlation terms $|\rn{i,k}|$ in Eq.\ \ref{eq:l1terms}. Put differently,
+we discard the edges with the smallest weights in the correlation graph.
+Let $\mrn{i}$ be a threshold value below which absolute correlations of object $i$ are approximated by zero, and $\drns{i}$ the 
+norm of discarded correlations:
+\begin{equation} \label{}
+\drns{i} = \sum_{ |\rn{i,k}| < \mrn{i}} |\rn{i,k}|.
+\end{equation}
+The upper bound of the error is then given by
+\begin{equation} \label{eq:errbound}
+E_1(i,j) \leq \drns{i} + \drns{j},
+\end{equation}
+where $E_1(i,j)=\drns{i} + \drns{j}$ when the edges of discarded relations of $i$ and $j$ do not share any destination
+vertex $k$. When calculating the object similarity based on the $L_1$-norm, we can therefore reduce the number of
+terms we need to compare by removing low correlation values with predictable errors. Lowering the number of terms in
+Eq.\ \ref{eq:l1common} while guaranteeing an error $E_1(i,j) \leq \theta_1$ is then a matter of sorting absolute correlations
+$|\rn{i,k}|$ and, starting with the smallest one, removing correlations until the cumulative sum reaches $\theta_1/2$, 
+which is one of the terms of the bound in Eq.~\ref{eq:errbound}.
+
+This brings us to our second observation, which is that in most correlation graphs of interest, a substantial fraction of
+the correlations from one object to others are, if not zero, very small or even magnitudes smaller than its largest
+relations, as exemplified in Fig.\ \ref{fig:billion-ew-cdf}. We can therefore effectively prune a
+large fraction of the links while keeping the cumulative discarded weight (and error) comparatively low.
+
+Moreover, if reducing terms in Eq.\ \ref{eq:l1terms} has priority over accuracy, we may start at the other end by specifying a 
+maximum in-degree per vertex, and keep the corresponding number of incoming edges with the largest weights. Doing so 
+we utilize that  the main bulk of vertices have low in-degrees and are therefore not affected by the
+pruning. This situation is illustrated in Fig.\ \ref{fig:billion-id-cdf}. By calculating and storing
+the sums of discarded weights of outgoing edges per vertex, we can then readily calculate the error bound per object
+pair according to Eq.\ \ref{eq:errbound}.
+
+Alternatively, since $\psi_{i,j}=\rns{i} + \rns{j}$ is known, we can approximate the $L_1$-norm 
+by solely approximating $\Lambda_{i,j}$ in Eq.\ \ref{eq:l1terms}, with an analogous term $\tilde{\Lambda}_{i,j}$ for
+the edges in the pruned graph:
+\begin{equation}
+\tilde{L}'_1(i,j) = \psi_{i,j} + \tilde{\Lambda}_{i,j}.
+\end{equation}
+Note that each term in Eq.\ \ref{eq:l1common} is at most 0 due to the triangle inequality, and that $\Lambda_{i,j} \leq \tilde{\Lambda}_{i,j} \leq 0$
+since the terms in  $\tilde{\Lambda}_{i,j}$ constitute a subset of the terms in $\Lambda_{i,j}$.
+The approximation error for $\tilde{L}'_1(i,j)$ then becomes
+\begin{equation}
+E'_1(i,j) = | \nm{i,j}  - \tilde{L}'_1(i,j) | = |\Lambda_{i,j} - \tilde{\Lambda}_{i,j}| = \tilde{\Lambda}_{i,j} - \Lambda_{i,j}
+\label{eq:error-prime}
+\end{equation}
+and hence
+\begin{equation}
+0 \leq E'_1(i,j) \leq - \Lambda_{i,j}.
+\end{equation}
+For the error, $\epsilon_{i,j}$, of the approximate relative $L_1$-norm and of the approximate similarity $\tilde{\sigma}_{i,j}$, this translates to
+\begin{equation}
+\epsilon_{i,j} \leq \frac{- \Lambda_{i,j}}{\psi_{i,j}} = 1 - \frac{\psi_{i,j} + \Lambda_{i,j}}{\psi_{i,j}} = \sigma_{i,j},
+\end{equation}
+and so the error is bound by
+\begin{equation}
+0 \leq \epsilon_{i,j} \leq \sigma_{i,j}.
+\label{eq:rel-error-bound}
+\end{equation}
+
+\begin{figure}
+\centerline{\includegraphics[width=0.75\columnwidth]{figures/billion-ew-cdf.pdf}}
+\caption{The cumulative distribution function of edge weights in the Billion word correlation graph described in 
+Sec.\ \ref{sec:words} shows that a large fraction of edges with low weights can be pruned. For example, 
+approximately 90\% of the edges are discarded when considering edges with weights $\geq 0.01$.}
+\label{fig:billion-ew-cdf}
+\end{figure}
+
+\begin{figure}
+\centerline{\includegraphics[width=0.75\columnwidth]{figures/billion-id-cdf.pdf}}
+\caption{The cumulative distribution function of in-degrees for the graph referred to in Fig.\ \ref{fig:billion-ew-cdf}
+ illustrates that it is possible to apply an in-degree threshold while affecting comparably few vertices. Only a small percentage
+  of the vertices are affected, for instance, when capping the in-degree at 500 edges.}
+\label{fig:billion-id-cdf}
+\end{figure}
+
+\subsection{Discovering concepts}
+\label{sec:discoveringConcepts}
+
+After transforming a correlation graph to a similarity graph, we can use the latter to find interesting
+structural properties among objects in terms of their similarity relations. Since two objects are similar
+if they occur in similar contexts, we can interpret the notion of \emph{similarity} as something that
+the objects together exhibit if they are approximately exchangeable in their respective contexts,
+being able to take each other's role. This notion of similarity  
+requires very little, if any, assumptions about the properties of the objects \emph{per se}, since it is 
+completely based on the relations \emph{between} objects.
+
+Given a set of objects and their similarities, we can view a pair of objects $i$ and $j$ that have similarity
+$\sigma_{i,j} = 1$ as equivalent. This is an equivalence relation in the formal sense
+since it satisfies reflexivity, symmetry and transitivity. We can therefore partition the set of objects into
+equivalence classes and interpret each class, in which all objects are interchangeable, as a concept.
+Due to noise and slight variations, however, full similarity is seldom fulfilled in practical applications.
+We therefore allow objects that are approximately similar,
+i.e.~$\sigma_{i,j} \geq 1-\epsilon$ for some small constant $\epsilon$,
+to belong to the same class. Due to this approximation, transitivity no longer holds, since although $i$ is approximately
+similar to $j$ and $j$ is approximately similar to $k$, $i$ is not necessarily approximately similar to $k$.
+From this follows that classes can overlap, which reflects that objects indeed may take several different roles
+(consider for instance proteins with multiple functions, or polysemous words \cite{Palla2005}). 
+Each concept is then constituted by a group of objects where each object has at least similarity $1-\epsilon$ to each other object. 
+
+From a graph perspective, these
+groups correspond to cliques (i.e.~complete subgraphs) in a similarity graph where $\sigma_{i,j} \geq 1-\epsilon$
+for all edges. Since cliques can contain other cliques -- in fact, there is a combinatorial
+explosion of such sub-cliques -- we require that a concept is a clique that is not a subset of another clique,
+i.e.~it is a \emph{maximal clique}. However, finding maximal cliques in graphs is a highly challenging problem, both in theory
+and practice. We therefore approximate maximal cliques with \emph{communities}, i.e.~clusters of vertices in the similarity graph. 
+An approach for finding such communities at scale is described in Sec.~\ref{sec:slpa-implementation}.
+
+\subsection{Implementation}
+\label{sec:algorithmsAndImplementation}
+
+\subsubsection{Similarities}
+\label{sec:similarity-implementation}
+
+\begin{figure*}
+\begin{lstlisting}
+1: ins   = edges.map(((i,j),rij) => (j,(i,rij)))
+2: pairs = ins.join(ins).filter((k,((i,rik),(j,rjk))) => i<j)
+3: terms = pairs.map((k,((i,rik),(j,rjk))) => 
+4:                   ((i,j),abs(rik-rjk)-abs(rik)-abs(rjk)))
+5:              .reducebykey((v,w) => v+w)
+\end{lstlisting}
+\caption{Pseudo-code of the sum term calculation in Eq.\ \ref{eq:l1terms}. 1) Edge tuples with vertex indices \texttt{i} and
+ \texttt{j}, and weights \texttt{rij} are mapped to key-value pairs keyed by destination vertices. 2) A two-hop graph is 
+ generated through self-join, and unique in-edge pairs are extracted through filtering. 3-4) All terms in the sum in 
+ Eq.\ \ref{eq:l1terms} are calculated and 5) summed per two-hop neighbour pair.
+}
+\label{fig:pseudocode}
+\end{figure*}
+
+The calculations of the approximations of the difference norms
+$\dnm{i}{j}$, as formulated in Eq. \ref{eq:l1terms}, lend themselves well to functional
+programming, since they can be implemented as a small number of standard transformations applied
+on a collection of correlation graph edges. The procedure can be summarized in the following
+steps:
+\begin{enumerate}
+\item For each vertex $i$, calculate the norms $\rns{i}$, i.e.~the weight sum prior
+to pruning.
+\item Prune the correlation graph by filtering out edges with weights below a given threshold value, $\mrn{i}$, and/or 
+by keeping a given number of incoming edges with the largest weights per vertex.
+\item Calculate $\tilde{\Lambda}_{i,j}$ for each pair of vertices that share at least one neighbour in the pruned correlation graph.
+This step is described in pseudo-code in Fig.\ \ref{fig:pseudocode} and
+involves a self-join operation for building a two-hop multigraph that links
+second-order neighbours, followed by a map transformation for calculating the
+terms in the sum, which subsequently are summed up per vertex pair by a reduce
+operation.
+\item For each vertex pair in the previous step, calculate the
+approximate relative $L_1$-norm, $\tilde{l}_{i,j} =
+(\tilde{\Lambda}_{i,j} + \psi_{i,j})/\psi_{i,j}$,
+and  the approximate
+similarity $\asy{i,j} = 1 - \tilde{l}_{i,j}$.
+\end{enumerate}
+The method is implemented in the Scala programming language and uses the in-memory
+data processing framework Apache Spark \cite{Zaharia-2012}, which enables us
+to employ the method at scale in terms of computing hardware.
+To facilitate reproducibility, the implementation is available
+with an open source license in an online repository.\footnote{https://github.com/sics-dna/concepts}
+ Since we are exclusively using standard core primitives in Spark (\texttt{map},
+\texttt{filter}, \texttt{join} etc.), implementing the
+method in other similar frameworks, such as Apache Flink \cite{Alexandrov14}, is also
+possible.
+
+\subsubsection{Concepts}
+\label{sec:slpa-implementation}
+In order to find object clusters in the similarity graph, we employ a \emph{community detection} 
+method (\emph{community} and \emph{cluster} are used interchangeably from here on). 
+There is a wealth of techniques to choose from and we refer the reader to \citeasnoun{Fortunato2010}
+for a thorough review of the area. For our purposes we need an algorithm that allows for overlapping communities
+and has good scalability characteristics. The ability to detect overlapping communities is important for
+concept discovery, as objects may exhibit multiple roles within a graph. 
+Another preference is that the algorithm does not require that the 
+number of clusters is predefined, but this number should rather be discovered from data.
+
+Based on these criteria, we employ an algorithm that is akin to the Speaker-listener
+label propagation algorithm (SLPA) by \citeasnoun{Xie2011}. In their algorithm, each vertex is assigned
+a \emph{memory}, constituted by cluster label-frequency pairs, that is initialized with a unique cluster label. Vertices
+are then updated sequentially and asynchronously: For a vertex $i$, each of $i$:s neighbours randomly 
+(proportionally to label frequencies) sample a cluster label from their respective memories. These labels are then
+sent to $i$, which adds the most common label to its memory. The procedure is repeated for a given number of 
+iterations, after which vertices are assigned to clusters with frequencies above a specific threshold. 
+
+In our implementation, all vertices are updated synchronously and in parallel, and instead of using
+memories with frequency information, we associate each vertex with a \emph{queue} (i.e., a ``first in-first out" data type)
+of community labels. More specifically, for each vertex $i$,
+\begin{enumerate}
+\item Initialize a queue $q_i = [i]$.
+\item \label{start-of-loop} Sample a label uniformly from $q_i$ and send it to all neighbours.
+\item \label{add-label} Of the received labels, add the one occurring most times to $q_i$. If $q_i$ has reached a maximum 
+capacity, $\gamma$, discard the oldest label in $q_i$ prior to adding the new one. 
+\item Repeat from step \ref{start-of-loop} $m$ times.
+\item Associate $i$ with clusters with labels that occur in $q_i$ with a frequency above a given threshold.
+\end{enumerate}
+Since a vertex can be associated with several communities, the communities can overlap, including
+the case where a community is a subset of another community. It is also possible that several equivalent clusters
+are found, in which case the redundant ones are removed in a post-processing step.
+
+The reason for storing cluster labels in queues, besides from ease of implementation, is that it has the effect 
+that transient cluster assignments at early iterations are quickly discarded. 
+
+Note that the current implementation does not take edge weights into consideration. Instead, edges with
+weights below a threshold, $\sigma_m$, are discarded prior to applying the above steps. 
+
+\subsection{Scalability characteristics}
+\label{sec:scalability-theory}
+In order to enable practical use on large tasks in terms of the number of objects, correlations and example data,
+a key design goal is scalability. Since we are using
+relational primitives to represent graphs,
+the scalability of the algorithm can be studied using established results from
+relational algebra \cite{Chandra77,Bitton83}. 
+
+The most computationally demanding component of the algorithm is
+building the two-hop graph through a self-join operation (the third step in Sec.\ \ref{sec:similarity-implementation}).
+Since a self-join is a conjunctive query \cite{Chandra77} in relational algebra terms,
+we can reason about its computational cost.
+Specifically for a distributed environment, \citeasnoun{koutris2011conjuctive}
+define a parallel algorithm as a sequence of parallel computation steps, and define its
+cost as the number of steps required to complete the algorithm.
+The authors prove that a join operation can be completed in one parallel computational
+step using the hash-join algorithm, by using a communication and a computation phase.
+Just as importantly, they prove that the hash-join operation is load balanced
+and as such it ensures linear speedup (doubling the server count reduces the load by
+half) and constant scale-up (when doubling both the size of the data and number of servers, the running time remains the same).
+Specifically for the Apache Spark platform, on which we implement the algorithm,
+the self-join operation creates what \citeasnoun{Zaharia-2012}
+call a \textit{narrow dependency}. This property allows for pipelined executions
+of all operations on one node up until the reduction step in Fig. \ref{fig:pseudocode}, without the need for expensive data shuffles
+through the network.
+
+\section{Experiments}
+\label{sec:experiments}
+
+\subsection{Examples}
+In order to demonstrate the broad applicability of our approach, we will showcase it in three distinct 
+domains: computational linguistics, music and molecular biology. Here we prioritize breadth over depth, and more in-depth evaluations 
+of the method's performance with respect to specific applications will be topics in future work.
+
+\subsubsection{Words}
+\label{sec:words}
+
+\begin{figure*}
+\centerline{\includegraphics[width=1.0\columnwidth]{figures/billion-words-example.pdf}}
+\caption{Examples of groups of words in a word similarity graph based on the Billion word corpus. 
+For sake of clarity, edges with weights $\sy{i,j} \geq 0.15$ are shown.}
+\label{fig:billion-words-example}
+\end{figure*}
+
+We begin by relating words in terms of their co-occurrence in text, where two words, $i$ and $j$, co-occur if they both
+appear within a window of $n$ words. In the simplest case, for $n = 2$, words co-occur if they are adjacent.
+There exist many different word association measures, see \cite{Pecina08} for a large number of examples, such as
+pointwise mutual information \cite{Church90} and normalized versions thereof \cite{Bouma09}. Here we simply measure the
+association between $i$ and $j$ as the relative frequency of $j$ occurring in $i$:s vicinity, or, in other words, as the
+conditional probability that a randomly selected word in a window that contains $i$, will be the word $j$. That is, $\rn{i,j}
+\approx c_{i,j}/{c_i}$, where $c_i$ and $c_{i,j}$ are the number of occurrences of $i$, and $i$ together with $j$,
+respectively. Note that this measure is not symmetric and so $\rn{i,j} \neq \rn{j,i}$ may be true.
+
+In this example we use the One billion word corpus \cite{Chelba13}, which consists of
+nearly one billion tokens and originates from crawled online news texts. We count the number 
+of occurrences of bigrams (pairs of adjacent words) with words consisting only
+of alphabetic characters. This results in approximately 8 million unique
+bigrams and a vocabulary with roughly 0.3 million words. From the bigram counts
+we relate words by their ordered adjacency.
+
+Despite the comparably modest size of this corpus and the narrow context window, the method
+manages to discover groups of words that reflect both syntactic and semantic
+concepts. Examples of such concepts are shown in Fig.\ \ref{fig:billion-words-example},
+where we see that the groups correspond e.g.\ to specific nouns,
+ (\emph{tablet}, \emph{laptop}, \emph{notebook} etc.), adjectives
+ (\emph{chic}, \emph{trendy}, \emph{fashionable} etc.), or adverbs
+ (\emph{strongly}, \emph{intensely}, \emph{vigorously}, etc.). Note that antonyms, in addition to synonyms, 
+ may occur in the same group (e.g. \emph{warmer} and \emph{colder}). This highlights that the notion of similarity (here
+ corresponding to what is termed \emph{relatedness} in the NLP field)
+ is very much dependent on the choice of correlation measure. The correlation measure may therefore be both
+ application and domain-specific, whereas the definition of similarity, \emph{given} the correlation measure, is domain-agnostic. 
+ Accordingly, antonyms are indeed similar by definition with respect to the correlation measure used in this example. However, 
+ for other correlation measures, possibly supporting negative correlations, antonyms may occur in separate concepts.
+
+\subsubsection{Artists}
+In the next proof-of-concept we relate artists by using a dataset that represents the listening
+habits of users of the \emph{Last.fm} music service.\footnote{http://www.last.fm/} This dataset, provided by
+\citeasnoun{Celma2010}, consists of approximately 19 million track plays of 992 users. For each user, we extract sequences of
+played artists -- there are roughly 177000 in total -- and consider the context of an artist to be defined by the probability
+distribution of subsequently played artists. Hence, we assume artists are related in a Markov chain, where each artist
+constitutes a state, and where there is a directed edge from artist $i$ to artist $j$ weighted with the probability
+that $j$ is played next, given that $i$ is currently playing. This probability is simply estimated as $\rn{i,j} \approx
+c_{i,j}/c_i$, where $c_i$ and $c_{i,j}$ are the number of times $i$, and $i$ followed by $j$ occur in the data set,
+respectively.
+
+The in-degree distribution of the artist correlation graph resembles those of the word correlation graphs, see Fig.\ \ref{fig:last-fm-id-cdf},
+which again means that relatively few vertices are affected by in-degree pruning. Transforming the artist correlation
+graph to a similarity graph also results in tightly grouped artists that can be clustered, where the resulting
+clusters appear to represent musical genres as exemplified in Fig.\ \ref{fig:artists}. As such, the similarity graph could
+ be used in a music recommendation system to relate similar artists 
+through the listening habits of users, similar to a collaborative filtering system. We could then also provide an
+ intuitive way to incorporate the popularity of artists via their play frequencies in order to mitigate the 
+ effect of popularity bias in recommendations \cite{celma2008hits}.
+
+\begin{figure}
+\centerline{\includegraphics[width=0.75\columnwidth]{figures/last-fm-id-cdf.pdf}}
+\caption{The cumulative distribution function of in-degrees for the artist correlation graph.}
+\label{fig:last-fm-id-cdf}
+\end{figure}
+
+\begin{figure}
+\centerline{\includegraphics[width=0.75\columnwidth]{figures/last-fm-example-3.pdf}}
+\caption{Examples of components in an artist similarity graph correspond to three distinct music genres. Edges with weights $\sy{i,j} \geq 0.5$ are shown.}
+\label{fig:artists}
+\end{figure}
+
+\subsubsection{Codons}
+
+Finally, we apply the method in molecular biology, where we consider codons as objects. Codons are triplets of
+adjacent nucleotides in DNA that translate to amino acid residues that in turn form proteins.  These are related
+through codon substitution dynamics, which is central both for understanding molecular evolution and in applications
+such as DNA sequence alignment \cite{Anisimova09}. Since there are only 64 codons in total, this example differs from
+the previous two in that we consider relatively few objects.
+
+Codon substitutions are often modeled as Markov processes \cite{Anisimova09}, where the
+substitution probabilities of a codon at a specific location are assumed to be independent of neighbouring codons as
+well as previous codons at the same location. In this example we use an empirically derived codon substitution matrix 
+provided by \citeasnoun{Schneider2005}, where we consider the context of a codon $i$ to be given by the relative substitution frequencies
+$(\rn{i,j})_{j=1}^n$ to other codons $j$.
+
+\begin{figure}
+\centerline{\includegraphics[width=0.9\columnwidth]{figures/codon-example.pdf}}
+\caption{Codon similarity graph where vertices are labeled with $c/a$ for codon $c$ coding to amino acid $a$. Edges
+with weights $\sy{i,j} \geq 0.45$ are shown. Vertices are grouped by
+chemical properties. Note that when the edge weight threshold is lowered, clusters containing several amino acids are split by
+amino acid. The rare and low mutable amino acid tryptophan is omitted. }
+\label{fig:codons}
+\end{figure}
+
+As seen in the resulting codon similarity graph in Fig.\ \ref{fig:codons}, codons that translate to the same amino acid according
+to the standard genetic code \cite{Nirenberg65} tend to be grouped. This reflects that codons that are highly similar
+are commutable -- quite literary -- since substitutions between these codons are neutral under evolution. These clusters are also
+present in the correlation graph and therefore preserved through the similarity graph transformation.
+
+We now shift perspective and view \emph{amino acid} as a concept. Again looking at Fig.\ \ref{fig:codons},
+we see that some of the amino acids are grouped. This can be explained by a higher degree of neutrality within groups
+than between them, which has been observed in empirical amino acid substitution matrices, such as the accepted point
+mutation (PAM) matrix by Dayhoff et al. \cite{Dayhoff78}. In comparison, Wu and Brutlag derived amino acid substitution
+groups by group-wise (as opposed to pairwise) statistical analysis of protein databases \cite{Wu96}.  The groups shown
+in Fig.\ \ref{fig:codons} (\{I, L, M, V\}, \{K, R\} and \{N, S\}) all agree with their findings. In summary, the codon similarity 
+graph captures both concepts and higher-order concepts: from codons to amino acids, via the genetic code,
+to collections of amino acids that constitute known substitution groups.
+
+\subsection{Evaluation}
+\label{subsec: evaluation}
+
+Due to the general nature of our approach, where several different correlation measures can be used 
+(e.g.\ co-occurrence probability, co-occurrence existence, pointwise mutual information, normalized pointwise 
+mutual information, Jaccard coefficient, S{\o}rensen-Dice coefficient), an exhaustive evaluation of the
+method across domains is beyond the scope of this paper. Instead we mainly evaluate our method in
+the computational linguistics domain, where there is a comparably large body of related work, 
+and leave other domain and application specific evaluations for future work. 
+To broaden the evaluation, we consider different correlation measures and corpora.
+
+\subsubsection{Similarity discovery}
+\label{subsubsec: similarity-discovery}
+
+An established approach to quantitatively evaluate the performance of word similarity methods is to use benchmarks
+with word pairs that have been manually graded with respect to degree of similarity. Since these
+benchmarks also contain unassociated words, it is not possible to do a direct comparison between our
+method and other approaches in terms of benchmark performance, since our method exclusively relates words that 
+have a certain degree of similarity (indeed, this is one of the reasons it is scalable). Instead we compare similarities 
+$\sy{i,j}$ with corresponding benchmark similarities for word pairs $(i, j)$ that \emph{do} exist in the similarity graph.
+For this purpose we use the standard WordSim-353 (WS-353) test collection \cite{Finkelstein01}, 
+which consists of 353 word pairs that have been graded by human annotators. 
+
+In the first experiment we use the English Google Books n-gram dataset \cite{Michel10,Lin12}, which consists of n-gram 
+(contiguous sequences of $n$ tokens) counts derived from a 361 billion token-corpus.
+We build a correlation graph from co-occurrence windows of size 5 using conditional probabilities as described in \ref{sec:words}, filter
+out words that occur with a frequency less than $10^{-8}$ and edges $\rn{i,j} < 10^{-3}$, and
+set the maximum in-degree to 200. In the similarity graph, which is built in less than 10 minutes (cf. Fig.\ \ref{fig:google-e-runtime}),
+60\% of the WS-353 word pairs are present, resulting in a Spearman rank correlation of 0.76. The current state of the
+art (with respect to the whole dataset) is 0.81 \cite{Halawi12,Yih12}.
+These figures represent the correlation with respect to the average annotator score, and as a comparison the mean performance
+of individual annotators, with respect to the mean score of the remaining annotators, is in fact also 0.76 \cite{Hill14}.
+The preciseness of this agreement, however, is most likely coincidental, although it gives a strong indication of the 
+validity of our approach.
+
+In the next experiment, we compare three different types of similarities: firstly, $\sy{i, j}$ using our method, secondly, WS-353 similarities, and thirdly,
+cosine similarities between vectors generated by GloVe \cite{Pennington2014}, the current state-of-the-art word embedding method.
+The cosine similarities are calculated using pre-trained word vectors made available by the authors.\footnote{http://nlp.stanford.edu/projects/glove/}
+Four embeddings are provided, with dimensions 50, 100, 200 and 300, that each relates words in windows of size 10. 
+The GloVe vectors are learnt from a concatenation of a Wikipedia dump from 2014 and the Gigaword 5 corpus 
+\cite{Graff03},\footnote{https://catalog.ldc.upenn.edu/LDC2011T07} which together contain approximately 6 billion tokens.
+
+The Gigaword 5 corpus is not freely available, so to enable reproducibility we apply CCM solely on a Wikipedia dump. 
+This dump is more recent (from March 2015) and therefore larger than the Wikipedia corpus used to train the GloVe vectors.
+The difference in size between the corpora used by GloVe and CCM is therefore smaller than if we would have used the
+2014 version of Wikipedia.
+
+We discard all tokens that contain non-alphanumeric characters, which leaves us with approximately 3.6 billion 
+tokens. These are then used to calculate correlations 
+between adjacent words using bigrams that occur at least 20 times in the corpus. 
+Correlations $\rn{i,j}$ are then given by the pointwise mutual information between $i$ and $j$ \cite{Church90}:
+\begin{equation}
+\rn{i,j} = \log_2 \frac{p_{i,j}}{p_i\ p_j},
+\end{equation}
+where $p_i$ and $p_j$ are the probabilities that $i$ and $j$ are observed in the corpus, and $p_{i,j}$ is the probability
+that they are observed together (i.e.\ being adjacent in this case). 
+These probabilities are estimated by $p_i \approx c_i / c_{t}$, $p_j \approx c_j / c_{t}$ and
+$p_{i,j} \approx c_{i,j} / c_{t}$, where $c_i$, $c_j$ and $c_{i,j}$ are occurrence counts, and where $c_{t}$ is the total number
+of tokens in the corpus. Since $p_i\ p_j$ is the probability that $i$ and $j$ co-occur if they were independent, 
+$\rn{i,j} = 0$ means that the objects are completely unrelated. If 
+$i$ and $j$ co-occur more frequently than expected from chance, then $\rn{i,j} > 0$. Similarly, $\rn{i,j} < 0$ if they 
+are observed together to a lesser extent than expected. Note further that the measure is symmetric, i.e.~$\rn{i,j} = \rn{j,i}$.
+
+In comparison to associating objects with conditional probabilities,
+pointwise mutual information has the advantage of being less dominated by very frequent object occurrences (consider for
+instance the correlation between a relatively infrequent word and a word such as \emph{the}).
+
+After building the correlation graph, we apply an in-degree threshold of 100, and calculate similarities
+between word pairs that are shared with WS-353. The cosine similarities between the same word pairs
+are then calculated for the four different word embeddings. To aid intuition and enable a qualitative comparison 
+between acquired similarities, we show scatter plots in Fig.\ \ref{fig:word-scatter} (for 300D vectors in the case of GloVe).
+
+All three types of similarities are inter-correlated. Specifically, the Spearman rank correlation coefficient
+between $\sy{i, j}$ and WS-353 is 0.65, and the correlations with the cosine similarity depend
+on the number of dimensions used. For 50D, 100D and 200D, the cosine similarity is more strongly correlated with $\sy{i, j}$ 
+(0.71, 0.68 and 0.68, respectively) than with WS-353 (0.57, 0.63 and 0.67, respectively), whereas for 300D,
+the cosine similarity is more strongly correlated with WS-353 (0.73) than with $\sy{i, j}$ (0.69). The latter case is the one
+shown in Fig.\ \ref{fig:word-scatter}.
+
+In summary, despite CCM using a smaller corpus (3.6B versus 6B tokens) and smaller window sizes (2 versus 10),
+CCM and GloVe generate surprisingly comparable similarities. In particular, we expected that the difference in window
+sizes would have a larger impact, since substantially more correlations are present beyond the narrow adjacency 
+window CCM employs in this case.
+
+\begin{figure}
+\centerline{\includegraphics[width=0.85\columnwidth]{figures/1460989019-ws353-sigma.pdf}}
+\centerline{\includegraphics[width=0.85\columnwidth]{figures/1460989019-ws353-glove-cosine.pdf}}
+\centerline{\includegraphics[width=0.85\columnwidth]{figures/1460989019-glove-cosine-sigma.pdf}}
+\caption{Scatter plots that compare similarities for labeled word pairs. GloVe is trained on Wikipedia (2014) and the Gigaword 5 corpus using 
+windows of size 10 and 300-dimensional word vectors, whereas CCM uses Wikipedia (2015) with windows of size 2. Top: WS-353 similarity versus $\sy{i, j}$. 
+Middle: WS-353 similarity versus GloVe cosine similarity. Bottom: GloVe cosine similarity versus $\sy{i, j}$.}
+\label{fig:word-scatter}
+\end{figure}
+
+\subsubsection{Concept discovery}
+\label{subsubsec: concept-discovery}
+
+\begin{figure}
+\centerline{\includegraphics[width=1.0\columnwidth]{figures/slpa-complete-adjusted_cropped.pdf}}
+\caption{Word similarity graph. In the electronic version of the paper, concepts are color coded and 
+vertex labels are visible after zooming. The visualization is done with \emph{Cytoscape} \protect\cite{Shannon2003}.}
+\label{fig:graph-overview}
+\end{figure}
+
+\begin{table}
+\caption{Uniformly sampled examples of concepts.}
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular*}{\textwidth}{l|l}
+\hline
+achievements, examples &
+minority, majority \\
+\hline
+burning, burn & 
+founding, associate \\
+\hline
+breakfast, lunch &
+thinking, thought \\
+\hline
+removing, remove &
+foreign, overseas\\
+\hline
+easy, easier &
+chrysler, inc\\
+\hline
+colour, color &
+found, discovered, bodies\\
+\hline
+loved, liked, enjoy, loves &
+heard, hear, hearing\\
+\hline
+liquid, toxic &
+fiscal, banking, financial, economic, gambling\\
+\hline
+tuition, tax &
+solar, wind\\
+\hline
+britain, nation &
+impose, enforce, violating, violated, imposed, imposing\\
+\hline
+\end{tabular*}
+\end{center}
+\label{table:random-clusters}
+\end{table}
+
+\begin{table}
+\caption{Selected examples of concepts.}
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular*}{\textwidth}{p{\textwidth-0.3cm}}
+\hline
+significant, dramatic, greater, major, enormous, modest, substantial, incredible, sharp, slight, 
+considerable, meaningful, largest, greatest, tremendous, biggest, bigger, great, unprecedented, 
+sudden, huge, rapid, steady, vast, massive, big, genuine, large \\
+\hline
+dallas, memphis, milwaukee, pittsburgh, detroit, cincinnati, indianapolis, diego, sydney, la, 
+houston, cleveland, chicago, louis, sacramento, oakland, orleans, vancouver, francisco, 
+orlando, angeles, baltimore, seattle, philadelphia, phoenix, buffalo, columbus, atlanta, vegas, denver, boston, montreal, toronto, miami, portland\\
+\hline
+yale, harvard, duke, oxford, cambridge, school, ucla, stanford, university, college \\
+\hline
+arkansas, colorado, jersey, delaware, georgia, kansas, florida, mississippi, minnesota, 
+wisconsin, dakota, massachusetts, indiana, california, maine, pennsylvania, illinois, utah, 
+carolina, louisiana, alaska, tennessee, texas, missouri, maryland, oklahoma, iowa, 
+montana, hampshire, oregon, nevada, kentucky, ohio, alabama, connecticut, michigan, virginia, arizona\\
+\hline
+grey, white, yellow, gray, blue, pink, red, dark, orange, black, green\\ 
+\hline
+van, convoy, vessel, aircraft, ship, bus, boat, crews, vessels, cycle, bike, vehicle, trains, 
+boats, helicopters, ships, vehicles, jet, helicopter, truck, buses, car, cars, flights, planes, 
+firefighters, motorcycle, trucks, plane\\ 
+\hline
+telegraph, tribune, post, xinhua, times, magazine, newspaper, mirror, observer, herald, 
+guardian\\
+\hline
+broadcasting, mining, banking, tech, telecommunications, wholesale, utility, retail,
+ telecom, infrastructure\\ 
+\hline
+main, principal, key, decisive, vital, precious, helpful, valuable, critical, useful, essential, 
+crucial, necessary, important\\ 
+\hline
+appears, sounds, appeared, sound, seemingly, looks, appear, seem, seems, appearing\\ 
+\hline
+soccer, tennis, diving, nba, cycling, boxing, hockey, sailing, basketball, football, baseball, 
+rugby, nfl, golf, cricket, nhl, swimming\\
+\hline
+weeks, years, year, days, month, quarters, hours, hour, contests, moments, decades, 
+holes, centuries, week, months, shortly, primaries, decade, minutes, seconds\\
+\hline
+tomorrow, wednesday, sunday, today, yesterday, monday, thursday, tuesday, tonight, 
+saturday, friday\\
+\hline
+footage, photograph, season, images, episode, pictures, episodes, videos, photographs, 
+tape, sessions, session, photos\\
+\hline
+high, lower, highest, upper, lowest, average, low, median, higher\\
+\hline
+gold, fuel, ore, electricity, silver, copper, water, ethanol, petroleum, oil, gas, uranium, 
+coal, power, energy, petrol\\
+\hline
+isolated, remote, wealthy, urban, vulnerable, poor, poorer, poorest, impoverished, rural\\
+\hline
+ninth, third, first, sixth, fourth, fifth, seventh, second, eighth\\
+\hline
+venezuelan, british, italian, australian, palestinian, american, spanish, iranian, yemeni, afghan, 
+georgian, swedish, austrian, lankan, lebanese, irish, german, argentine, saudi, indian, brazilian, 
+greek, dutch, serbian, communist, egyptian, cuban, myanmar, pakistani, israeli, colombian, 
+nigerian, tibetan, syrian, mexican, russian, portuguese, korean, somali, thai, soviet, swiss, us, 
+czech, french, polish, chinese, uae, sudanese, japanese, belgian, norwegian, turkish, kurdish, 
+tibet, indonesian, canadian, haitian, iraqi, english, danish, tamil\\
+\hline
+\end{tabular*}
+\end{center}
+\label{table:selected-clusters}
+\end{table}
+
+We will now demonstrate the concept discovery approach by applying the clustering algorithm described in 
+Sec.~\ref{sec:slpa-implementation} on a similarity graph transformed from a word correlation graph.
+The latter is built from the Billion word corpus using bigram counts, where correlations are given by
+pointwise mutual information. 
+
+The correlation graph consists of vertices with $p_i \geq 10^{-5}$ and edges with $\rn{i,j} \geq 4$ bits, and has 
+a maximum in-degree of 1000 edges. When clustering the corresponding similarity graph, 
+$\sigma_m = 0.25$, queues have capacity 4, and the iteration described in \ref{sec:slpa-implementation} is performed 16 times. 
+The resulting cluster assignments are then given by labels that occupy at least 50\% per queue. Out of these, the most 
+dominant cluster assignments per vertex are depicted in Fig.~\ref{fig:graph-overview}.
+
+As examples, a random set of clusters is shown in Table \ref{table:random-clusters}, and a set of clusters of our choosing in 
+Table \ref{table:selected-clusters}. Both sets -- with some exceptions (e.g. \{britain, nation\}, perhaps due to that both
+words are strongly correlated with \emph{great}) -- demonstrate that the method is capable of discovering 
+concepts that we perceive as meaningful in that they capture abstract syntactic and semantic notions in the corpus, such as
+\emph{vehicle}, \emph{US state} (which, incidentally, also demonstrates our bare-bones parsing of the corpus,
+since \emph{carolina} and \emph{hampshire} -- lacking \emph{north}, \emph{south} and \emph{new} -- belong to this concept),
+\emph{color}, \emph{nationality}, \emph{day} and so on.
+
+\subsection{Parameter sensitivity}
+
+In this section we will report how approximation errors and relevant graph structure measures are affected by the 
+correlation graph pruning.
+
+\subsubsection{Approximation errors}
+\label{subsubsec: approximation-errors}
+
+\begin{figure}
+\centerline{\includegraphics[width=0.75\columnwidth]{figures/1446451652-absolute_error_2.pdf}}
+\caption{Densities of absolute similarity errors $\epsilon_{i,j}$ for different in-degree thresholds $\delta$.}
+\label{fig:abs-error}
+\end{figure}
+
+\begin{figure}
+\centerline{\includegraphics[width=0.75\columnwidth]{figures/1446451652-relative_error_2.pdf}}
+\caption{Densities of relative similarity errors $\epsilon_{i,j}/\sigma_{i,j}$ for different 
+in-degree thresholds $\delta$.}
+\label{fig:rel-error}
+\end{figure}
+
+We begin by evaluating the degree of approximation errors caused by the in-degree threshold as follows:
+
+\begin{enumerate}
+\item Build a reference correlation graph $\mathcal{R}$ that represents the full set of unpruned correlations. 
+Here $\mathcal{R}$ is built from co-occurrence frequencies in the Billion word corpus, 
+where correlations are given by conditional probabilities as described in Sec.\ \ref{sec:words}.
+Correlations where $\rho_{i,j} \geq 10^{-5}$ are kept and in-degrees are capped at 1000.
+Furthermore, words occurring with a frequency less than $10^{-5}$ are discarded.
+\item Transform $\mathcal{R}$ to a similarity graph $\mathcal{S}$, constituting the ``true'' similarity graph.
+\item For different in-degree thresholds $\delta \in \{100, 300, ..., 900\}$:
+\begin{enumerate}
+\item Prune $\mathcal{R}$ into an approximate correlation graph $\mathcal{R}_{\delta}$.
+\item Transform $\mathcal{R}_{\delta}$ into an approximate (with respect to $\mathcal{R}$) similarity 
+graph $\mathcal{S}_{\delta}$. 
+\item Calculate the errors $\epsilon_{i,j} = |\sigma_{i,j} - \tilde{\sigma}_{i,j}|$ as the differences between
+the edge weights in corresponding edges $(i,j)$ in $\mathcal{S}$ and $\mathcal{S}_{\delta}$.
+\end{enumerate}
+\end{enumerate}
+
+The result of this procedure is shown in Figures \ref{fig:abs-error} and \ref{fig:rel-error}, where we
+plot the densities (normalized counts of binned errors) of the absolute error $\epsilon_{i,j}$, as well as of the relative error, 
+$\epsilon_{i,j}/\sigma_{i,j}$ with respect to the similarity. In both cases the approximation
+errors quickly decrease with growing in-degree thresholds. Note also that the relative error in 
+Fig.\ \ref{fig:rel-error} is consistent with the error bound in Eq.\ \ref{eq:rel-error-bound} in being bound by 1.
+
+We hypothesize that the relative errors tend to be smaller for large similarities $\sigma_{i,j}$ than for
+ small ones, since if a correlation $\rho_{i,k}$ between $i$ and some $k$ is sufficiently small to be discarded,
+the same goes for the correlation $\rho_{j,k}$  as $i$ and $j$ are similar. This has the effect that the number of
+discarded terms in  $\Lambda_{i,j}$, cf.~Eq.~\ref{eq:error-prime}, is comparably small (the number 
+of discarded terms is at most the sum of discarded edges of $i$ and $j$, which is the case when neither of these
+edges share a common terminal $k$). To test this hypothesis, we plot a heat map (i.e., a color-coded 2-dimensional 
+histogram) of the similarities $\sigma_{i,j}$ and the relative errors $\epsilon_{i,j}/\sigma_{i,j}$ (see Fig.\ \ref{fig:error-heatmap}), 
+and indeed, the relative error appears to be negatively correlated with the similarity.
+
+\begin{figure}
+\centerline{\includegraphics[width=0.75\columnwidth]{figures/1446451652-relative_error-heatmap-900.pdf}}
+\caption{Heat map of similarities $\sigma_{i,j}$ and relative errors $\epsilon_{i,j}/\sigma_{i,j}$ (log scale)
+for $\delta = 900$. Color coded in the electronic version of the paper, where red, yellow and cyan indicate a 
+high density, and blue indicates a low density.}
+\label{fig:error-heatmap}
+\end{figure}
+
+\subsubsection{Graph structure}
+\label{subsubsec: graph-properties}
+
+\begin{figure}
+\centerline{\includegraphics[width=0.75\columnwidth]{figures/1460368011-c-lcc.pdf}}
+\centerline{\includegraphics[width=0.75\columnwidth]{figures/1460368011-s-lcc.pdf}}
+\caption{Mean local clustering coefficients for correlation and similarity graphs (solid lines) for different in-degree thresholds,
+and for random graphs (dashed lines) with corresponding numbers of vertices and edges. Standard errors given by error bars.}
+\label{fig:clust-coeffs}
+\end{figure}
+
+\begin{figure}
+\centerline{\includegraphics[width=0.75\columnwidth]{figures/1460368011-c-id.pdf}}
+\centerline{\includegraphics[width=0.75\columnwidth]{figures/1460368011-s-d.pdf}}
+\caption{Mean correlation graph in-degree and similarity graph degree (unweighted, i.e.\ number of
+edges) for different in-degree thresholds. Standard errors given by error bars.}
+\label{fig:degrees}
+\end{figure}
+
+We also explore how the structures of the correlation and similarity graphs are affected by the in-degree threshold.
+The same parameters are used as in the previous experiment. We measure the mean local clustering 
+coefficients \cite{Watts1998} of the graphs, which is the expected local density of edges in the neighbourhood of a vertex. 
+More specifically, for a given vertex, this measure is given by the ratio of existing edges between the vertex' neighbours, and all 
+possible edges between those neighbours. The mean clustering coefficient can be interpreted as a measure of the degree 
+by which nodes are clustered. This is of interest both for the correlation graph, since it an indication of the sparsity of 
+the graph, and, in particular, for the similarity graph, since it measures the existence of concepts in the form of tightly clustered objects.
+
+As seen in Fig.\ \ref{fig:clust-coeffs}, both graphs are highly clustered compared to random graphs with corresponding 
+numbers of edges and vertices. In the correlation graph, the correlation coefficient is relatively large for small in-degree 
+thresholds and grows substantially as this threshold increases. The situation is different for the similarity graph, where although the
+clustering coefficient grows with the threshold, the relative coefficient with respect to the random graph is slightly decreasing.
+Naturally, the mean in-degree of the correlation graph decreases with decreasing in-degree threshold,
+which is translated to a decrease in the similarity graph, cf.\ Fig.\ref{fig:degrees}.
+
+We can conclude that the similarity graph has a clustered structure regardless of in-degree threshold 
+and so contains concepts in the form of grouped objects, and that the structures of both the correlation graph 
+and the similarity graph change substantially with lowered in-degree thresholds. This is expected, but importantly, 
+the change is in both cases smooth, e.g.\ we do not experience sudden ``phase transitions'', which tells us that 
+we can apply the in-degree threshold in a predictable and controllable manner.
+
+\subsection{Runtime and scalability}
+\label{sec: scalability}
+
+\begin{figure}
+\centerline{\includegraphics[width=0.75\columnwidth]{figures/billion-rt-2.pdf}}
+\caption{Runtime for different in-degree 
+thresholds, and $\rn{i,j} \geq 10^{-5}$. Built from bigrams in the One billion word corpus using a commodity laptop.}
+\label{fig:billion-e-runtime}
+\end{figure}
+
+To demonstrate that our approach is applicable at scale in practice, we apply it on a dataset that is based on 
+one of the largest, to our knowledge, text corpora currently available, the Google Books
+n-gram dataset \cite{Michel10,Lin12}, which corresponds to approximately 4\% of all books ever printed.
+The dataset is publicly available, and in our experiments we use
+the version that is available through the Amazon S3 service.\footnote{https://aws.amazon.com/datasets/google-books-ngrams/}
+As described in Sec.\ \ref{sec:words}, we use the English language corpus
+which contains approximately 361 billion tokens. When processed into 5-grams, the corpus results in a file with 24.5 billion 
+rows and the total compressed size of the dataset is 221.5 GB. This data is pre-processed to create the correlation graph by retaining
+only alphabetic characters. The resulting correlation graph before pruning has 706,108 vertices and 94,945,991 edges.
+
+To perform the experiments we employ an Apache Spark cluster created using the Amazon
+Web Services EC2 service.\footnote{http://aws.amazon.com/ec2/}
+The cluster consists of 8 nodes (1 master and 7 slaves), where each node has 4 vCPUs and
+30.5 GiB of memory (EC2 instance type \emph{r3.xlarge}), such that the total amount of memory available to the cluster
+is roughly 186 GiB, as reported by Spark.
+
+\begin{figure}
+\centerline{\includegraphics[width=0.75\columnwidth]{figures/eng-all-edge-low-e3-vtx-low-e8-high-e1-100-400-idg-nt.pdf}}
+\caption{Runtime for different in-degree 
+thresholds, and $\rn{i,j} \geq 10^{-3}$. Built from Google Books 5-grams using an Amazon
+EC2 cluster (see text for details).}
+\label{fig:google-e-runtime}
+\end{figure}
+
+The experiment results support the theoretical investigation of the computational
+cost of the algorithm, cf.~Sec.~\ref{sec:scalability-theory}, and together with the pruning
+described in Section \ref{sec:approximations} we are able to transform correlation graphs into similarity
+graphs in reasonable amounts of time. This also holds true when using more modest computational resources,
+as shown in Fig.\ \ref{fig:billion-e-runtime}, for building similarity graphs using the Billion word corpus as described
+in Sec.\ \ref{sec:words}. Analogous results are achieved in the Google 5-gram case, here with runtimes on the order of minutes,
+as seen in Fig.\ \ref{fig:google-e-runtime}. The experiments were replicated three times, and
+the runtimes are reported in Table \ref{tab:google_runtimes}.
+Together with Fig.\ \ref{fig:abs-error}, Fig.\ \ref{fig:billion-e-runtime} and Fig.\ \ref{fig:google-e-runtime} illustrate the trade-off between accuracy, controlled
+via the in-degree threshold, and runtime, where the runtime scales favourably with an increasing in-degree threshold.
+With respect to the in-degree threshold, we also observe a sublinear scaling of the number of edges in the correlation
+graph, and a linear growth of the number of  edges in the similarity graph,  as shown in Fig.\ \ref{fig:google-ne}. This reflects the situation exemplified i
+n Fig.\ \ref{fig:billion-id-cdf}, namely that comparably few vertices are affected by the in-degree threshold.
+
+\begin{figure}
+\centerline{\includegraphics[width=0.75\columnwidth]{figures/eng-all-edge-low-e3-vtx-low-e8-high-e1-100-400-idg-ne-nt.pdf}}
+\caption{Number of edges in the correlation- and similarity graph, respectively, for different in-degree thresholds. Built from Google Books 5-grams
+with the same configuration as in Fig.\ \ref{fig:google-e-runtime}.}
+\label{fig:google-ne}
+\end{figure}
+
+\begin{table}
+\renewcommand{\arraystretch}{1.3}
+\caption{Runtimes in seconds for Google Books dataset.}
+\label{tab:google_runtimes}
+\begin{center}
+\begin{tabular}{c|r|r|r||c|c}
+  \hline \bfseries In-degree  & \bfseries Run 1
+  & \bfseries Run 2
+  & \bfseries Run 3
+  & \bfseries $\mu$
+  & \bfseries $\sigma$
+  \\
+  \hline\hline 100
+  & 246.7
+  & 229.5
+  & 236.7
+  & 237.6
+  & 8.6
+  \\
+  \hline 200
+  & 603.7
+  & 573.2
+  & 575.4
+  & 584.1
+  & 16.9
+  \\
+  \hline 300
+  & 1062.4
+  & 998.3
+  & 1031.2
+  & 1030.7
+  & 32.0
+  \\
+  \hline 400
+  & 1535.5
+  & 1602.5
+  & 1554.0
+  & 1564.0
+  & 34.6
+  \\
+  \hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\section{Conclusions}
+\label{sec:conclusions}
+
+This paper proposes conceptually simple methods for discovering similarities and concepts by 
+transforming a correlation graph to a similarity graph on which clustering is performed. As the approach does not rely on any
+intermediate representation or dimensionality reduction, or on specific information about objects besides
+their correlations, it is applicable with few restrictions
+to any domain in which a correlation graph can be constructed. Our experiments show that the approach not only can
+detect similarities and concepts in several types of data, but also that it is computationally feasible for large-scale
+applications with very large numbers of objects and correlations.
+
+Due to the generality of the approach there is a vast number of possible directions to take. For instance, it can 
+potentially be used to discover analogous objects in gene regulatory data or protein interaction networks, to provide 
+recommendations from user data, or in general for detecting higher-order dynamics in 
+discrete-valued stochastic processes. It then remains to quantitatively evaluate the properties of the scheme, for example in 
+terms of application specific benchmark performance, approximation error and runtime. 
+
+The main methodological challenge for future work revolves around how to efficiently build hierarchical concept models.
+The concepts discovered through the methods described in this paper essentially represent OR-relations: All constituent
+objects of a cluster are commutable, and the concept can be said to be observed if any of its constituents
+are. Analogously, strong clusters detected in the correlation graph could be considered to represent AND-relations,
+where the corresponding concept is observed when all of its constituents are. Both these types of
+concepts can be identified, brought back into the estimation of the correlation graph, and the process
+iterated, allowing for the discovery of complex higher-order relations. How to reliably and efficiently perform this
+remains an area of further study.
+
+\begin{acknowledgements}
+This work was funded by the Swedish Foundation for Strategic Research (\emph{Stiftelsen f\"or strategisk forskning}) 
+and the Knowledge Foundation (\emph{Stiftelsen f\"or kunskaps- och kompetensutveckling}). 
+The authors would like to thank the anonymous reviewers for their valuable comments.\end{acknowledgements}
+
+\begin{thebibliography}{xx}
+
+\harvarditem{Albert \harvardand\ Barab\'asi}{2002}{Albert2002}
+Albert, R. \harvardand\ Barab\'asi, A.-L.  \harvardyearleft
+  2002\harvardyearright , `Statistical mechanics of complex networks', {\em
+  Rev. Mod. Phys.} {\bf 74}(1),~47--97.
+
+\harvarditem[Alexandrov et~al.]{Alexandrov, Bergmann \harvardand\
+  Ewen}{2014}{Alexandrov14}
+Alexandrov, A., Bergmann, R. \harvardand\ Ewen, S. et al.  \harvardyearleft
+  2014\harvardyearright , `The {S}tratosphere platform for big data analytics',
+  {\em The VLDB Journal} pp.~163--181.
+
+\harvarditem{Anisimova \harvardand\ Kosiol}{2009}{Anisimova09}
+Anisimova, M. \harvardand\ Kosiol, C.  \harvardyearleft 2009\harvardyearright ,
+  `Investigating protein-coding sequence evolution with probabilistic codon
+  substitution models.', {\em Molecular Biology and Evolution} {\bf
+  26}(2),~255--271.
+
+\harvarditem[Bitton et~al.]{Bitton, Boral, DeWitt \harvardand\
+  Wilkinson}{1983}{Bitton83}
+Bitton, D., Boral, H., DeWitt, D.~J. et al.
+  \harvardyearleft 1983\harvardyearright , `Parallel algorithms for the
+  execution of relational database operations', {\em ACM Transactions in
+  Database Systems} {\bf 8}(3),~324--353.
+
+\harvarditem{Bouma}{2009}{Bouma09}
+Bouma, G.  \harvardyearleft 2009\harvardyearright , Normalized (pointwise)
+  mutual information in collocation extraction, {\em in} `From form to meaning:
+  Processing texts automatically, Proceedings of the Biennial GSCL Conference',
+  pp.~31--40.
+
+\harvarditem[Brown et~al.]{Brown, deSouza, Mercer, Pietra \harvardand\
+  Lai}{1992}{Brown1992}
+Brown, P.~F., deSouza, P.~V., Mercer, R.~L. et al.
+  \harvardyearleft 1992\harvardyearright , `{Class-based N-gram Models
+  of Natural Language}', {\em {Computational Linguistics}} {\bf
+  18}(4),~467--479.
+
+\harvarditem{Cancho \harvardand\ Sol\'{e}}{2001}{Cancho2001}
+Cancho, R.~F. \harvardand\ Sol\'{e}, R.~V.  \harvardyearleft
+  2001\harvardyearright , `The small world of human language', {\em Proceedings
+  of the Royal Society of London. Series B: Biological Sciences} {\bf
+  268}(1482),~2261--2265.
+
+\harvarditem{Celma}{2010}{Celma2010}
+Celma, {\`O}.  \harvardyearleft 2010\harvardyearright , {\em {Music
+  Recommendation and Discovery in the Long Tail}}, Springer.
+
+\harvarditem{Celma \harvardand\ Cano}{2008}{celma2008hits}
+Celma, {\`O}. \harvardand\ Cano, P.  \harvardyearleft 2008\harvardyearright ,
+  From hits to niches? or how popular artists can bias music recommendation and
+  discovery, {\em in} `Proceedings of the 2nd KDD Workshop on Large-Scale
+  Recommender Systems and the Netflix Prize Competition', ACM, p.~5.
+
+\harvarditem{Chandra \harvardand\ Merlin}{1977}{Chandra77}
+Chandra, A.~K. \harvardand\ Merlin, P.~M.  \harvardyearleft
+  1977\harvardyearright , Optimal implementation of conjunctive queries in
+  relational data bases, {\em in} `Proceedings of the Ninth Annual ACM
+  Symposium on Theory of Computing', STOC '77, ACM, New York, NY, USA,
+  pp.~77--90.
+
+\harvarditem[Chelba et~al.]{Chelba, Mikolov, Schuster, Ge, Brants \harvardand\
+  Koehn}{2013}{Chelba13}
+Chelba, C., Mikolov, T., Schuster, M. et al.
+  \harvardyearleft 2013\harvardyearright , `One billion word benchmark for
+  measuring progress in statistical language modeling.', {\em {CoRR}} {\bf
+  abs/1312.3005}.
+
+\harvarditem{Church \harvardand\ Hanks}{1990}{Church90}
+Church, K.~W. \harvardand\ Hanks, P.  \harvardyearleft 1990\harvardyearright ,
+  `Word association norms, mutual information, and lexicography', {\em
+  Computational Linguistics} {\bf 16}(1),~22--29.
+
+\harvarditem{Dayhoff \harvardand\ Schwartz}{1978}{Dayhoff78}
+Dayhoff, M.~O. \harvardand\ Schwartz, R.~M.  \harvardyearleft
+  1978\harvardyearright , Chapter 22: A model of evolutionary change in
+  proteins, {\em in} `Atlas of Protein Sequence and Structure'.
+
+\harvarditem{Dice}{1945}{Dice45}
+Dice, L.~R.  \harvardyearleft 1945\harvardyearright , `{Measures of the amount
+  of ecologic association between species}', {\em Ecology} {\bf
+  26}(3),~297--302.
+
+\harvarditem[Finkelstein et~al.]{Finkelstein, Gabrilovich, Matias, Rivlin,
+  Solan, Wolfman \harvardand\ Ruppin}{2001}{Finkelstein01}
+Finkelstein, L., Gabrilovich, E., Matias, Y. et al.
+  \harvardyearleft 2001\harvardyearright , Placing
+  search in context: The concept revisited, {\em in} `Proceedings of the 10th
+  International Conference on World Wide Web', WWW '01, ACM, New York, NY, USA,
+  pp.~406--414.
+
+\harvarditem{Firth}{1957}{Firth57}
+Firth, J.~R.  \harvardyearleft 1957\harvardyearright , {A synopsis of
+  linguistic theory 1930--55.}, {\em in} `{Studies in Linguistic Analysis
+  (special volume of the Philological Society)}', Vol. 1952-59, {The
+  Philological Society}, pp.~1--32.
+
+\harvarditem{Fortunato}{2010}{Fortunato2010}
+Fortunato, S.  \harvardyearleft 2010\harvardyearright , `Community detection in
+  graphs', {\em Physics Reports} {\bf 486}(3-5),~75--174.
+
+\harvarditem[G\"ornerup et~al.]{G\"ornerup, Gillblad \harvardand\
+  Vasiloudis}{2015}{Gornerup2015}
+G\"ornerup, O., Gillblad, D. \harvardand\ Vasiloudis, T.  \harvardyearleft
+  2015\harvardyearright , Knowing an object by the company it keeps: A
+  domain-agnostic scheme for similarity discovery, {\em in} `{IEEE}
+  International Conference on Data Mining {(ICDM} 2015)'.
+
+\harvarditem{Graff}{2003}{Graff03}
+Graff, D.  \harvardyearleft 2003\harvardyearright , `{English Gigaword}'.
+
+\harvarditem[Halawi et~al.]{Halawi, Dror, Gabrilovich \harvardand\
+  Koren}{2012}{Halawi12}
+Halawi, G., Dror, G., Gabrilovich, E. et al.  \harvardyearleft
+  2012\harvardyearright , Large-scale learning of word relatedness with
+  constraints, {\em in} `Proceedings of the 18th ACM SIGKDD International
+  Conference on Knowledge Discovery and Data Mining', ACM, New York, NY, USA,
+  pp.~1406--1414.
+
+\harvarditem[Harispe et~al.]{Harispe, Ranwez, Janaqi \harvardand\
+  Montmain}{2015}{Harispe2015}
+Harispe, S., Ranwez, S., Janaqi, S. et al. \harvardyearleft
+  2015\harvardyearright , `{Semantic Similarity from Natural Language and
+  Ontology Analysis}', {\em Synthesis Lectures on Human Language Technologies}
+  {\bf 8}(1),~1--254.
+
+\harvarditem{Harris}{1954}{Harris54}
+Harris, Z.  \harvardyearleft 1954\harvardyearright , `Distributional
+  structure', {\em Word} {\bf 10}(23),~146--162.
+
+\harvarditem[Hill et~al.]{Hill, Reichart \harvardand\ Korhonen}{2014}{Hill14}
+Hill, F., Reichart, R. \harvardand\ Korhonen, A.  \harvardyearleft
+  2014\harvardyearright , `Simlex-999: Evaluating semantic models with
+  (genuine) similarity estimation', {\em {CoRR}} {\bf abs/1408.3456}.
+
+\harvarditem{Jaccard}{1912}{Jaccard1912}
+Jaccard, P.  \harvardyearleft 1912\harvardyearright , `The distribution of the
+  flora in the alpine zone', {\em New Phytologist} {\bf 11}(2),~37--50.
+
+\harvarditem{Jeh \harvardand\ Widom}{2002}{Jeh2002simrank}
+Jeh, G. \harvardand\ Widom, J.  \harvardyearleft 2002\harvardyearright ,
+  Simrank: A measure of structural-context similarity, {\em in} `Proceedings of
+  the Eighth ACM SIGKDD International Conference on Knowledge Discovery and
+  Data Mining', KDD '02, ACM, New York, NY, USA, pp.~538--543.
+
+\harvarditem[Jordan et~al.]{Jordan, Mari\~{n}o Ram\'{\i}rez, Wolf \harvardand\
+  Koonin}{2004}{Jordan2004}
+Jordan, I.~K., Mari\~{n}o Ram\'{\i}rez, L., Wolf, Y.~I.  et al.
+  \harvardyearleft 2004\harvardyearright , `{Conservation and
+  Coevolution in the Scale-Free Human Gene Coexpression Network}', {\em
+  Molecular Biology and Evolution} {\bf 21}(11),~2058--2070.
+
+\harvarditem{Kessler}{1963}{Kessler1963}
+Kessler, M.  \harvardyearleft 1963\harvardyearright , `Bibliographic coupling
+  between scientific papers', {\em American Documentation 14} pp.~10--25.
+
+\harvarditem{Koutris \harvardand\ Suciu}{2011}{koutris2011conjuctive}
+Koutris, P. \harvardand\ Suciu, D.  \harvardyearleft 2011\harvardyearright ,
+  Parallel evaluation of conjunctive queries, {\em in} `Proceedings of the
+  Thirtieth ACM SIGMOD-SIGACT-SIGART Symposium on Principles of Database
+  Systems', PODS '11, ACM, New York, NY, USA, pp.~223--234.
+
+\harvarditem{Larson}{1996}{Larson96}
+Larson, R.  \harvardyearleft 1996\harvardyearright , `{Bibliometrics of the
+  World Wide Web: An exploratory analysis of the intellectual structure of
+  cyberspace}', {\em Ann. Meeting of the American Soc. Info. Sci.} .
+
+\harvarditem[Leicht et~al.]{Leicht, Holme \harvardand\
+  Newman}{2006}{leicht2006vertex}
+Leicht, E.~A., Holme, P. \harvardand\ Newman, M. E.~J.  \harvardyearleft
+  2006\harvardyearright , `Vertex similarity in networks', {\em Physical Review
+  E} {\bf 73},~026120.
+
+\harvarditem[Lin et~al.]{Lin, Michel, Aiden, Orwant, Brockman \harvardand\
+  Petrov}{2012}{Lin12}
+Lin, Y., Michel, J., Aiden, E.~L. et al. \harvardyearleft 2012\harvardyearright , {Syntactic Annotations
+  for the Google Books Ngram Corpus}, {\em in} `Proceedings of the ACL 2012
+  System Demonstrations', ACL '12, Association for Computational Linguistics,
+  Stroudsburg, PA, USA, pp.~169--174.
+
+\harvarditem[Michel et~al.]{Michel, Shen, Aiden, Veres, Gray, Team, Pickett,
+  Holberg, Clancy, Norvig, Orwant, Pinker, Nowak \harvardand\
+  Aiden}{2010}{Michel10}
+Michel, J., Shen, Y.~K., Aiden, A.~P. et al. \harvardyearleft
+  2010\harvardyearright , `Quantitative analysis of culture using millions of
+  digitized books', {\em Science} .
+
+\harvarditem{Mihalcea \harvardand\ Radev}{2011}{Mihalcea2011}
+Mihalcea, R. \harvardand\ Radev, D.  \harvardyearleft 2011\harvardyearright ,
+  {\em Graph-based natural language processing and information retrieval},
+  Cambridge University Press.
+
+\harvarditem[Mikolov et~al.]{Mikolov, Sutskever, Chen, Corrado \harvardand\
+  Dean}{2013}{Mikolov-2013}
+Mikolov, T., Sutskever, I., Chen, K. et al.
+  \harvardyearleft 2013\harvardyearright , Distributed representations of words
+  and phrases and their compositionality, {\em in} `Advances in Neural
+  Information Processing Systems', pp.~3111--3119.
+
+\harvarditem{Miller}{1995}{miller1995wordnet}
+Miller, G.~A.  \harvardyearleft 1995\harvardyearright , `Wordnet: a lexical
+  database for english', {\em Communications of the ACM} {\bf 38}(11),~39--41.
+
+\harvarditem[Mislove et~al.]{Mislove, Marcon, Gummadi, Druschel \harvardand\
+  Bhattacharjee}{2007}{mislove2007social}
+Mislove, A., Marcon, M., Gummadi, K.~P. et al. \harvardyearleft 2007\harvardyearright , Measurement and
+  analysis of online social networks, {\em in} `Proceedings of the 7th ACM
+  SIGCOMM Conference on Internet Measurement', IMC '07, ACM, New York, NY, USA,
+  pp.~29--42.
+
+\harvarditem[{Nirenberg} et~al.]{{Nirenberg}, {Leder}, {Bernfield},
+  {Brimacombe}, {Trupin}, {Rottman} \harvardand\ {O'Neal}}{1965}{Nirenberg65}
+{Nirenberg}, M., {Leder}, P., {Bernfield}, M. et al. \harvardyearleft
+  1965\harvardyearright , `{RNA Codewords and Protein Synthesis, VII. On the
+  General Nature of the RNA Code}', {\em Proceedings of the National Academy of
+  Science} {\bf 53},~1161--1168.
+
+\harvarditem[Palla et~al.]{Palla, Derenyi, Farkas \harvardand\
+  Vicsek}{2005}{Palla2005}
+Palla, G., Derenyi, I., Farkas, I. et al. \harvardyearleft
+  2005\harvardyearright , `Uncovering the overlapping community structure of
+  complex networks in nature and society', {\em Nature} {\bf
+  435}(7043),~814--818.
+\newline\harvardurl{http://dx.doi.org/10.1038/nature03607}
+
+\harvarditem{Pecina}{2008}{Pecina08}
+Pecina, P.  \harvardyearleft 2008\harvardyearright , A machine learning
+  approach to multiword expression extraction, {\em in} `Proceedings of the
+  {LREC} 2008 Workshop Towards a Shared Task for Multiword Expressions',
+  European Language Resources Association, pp.~54--57.
+
+\harvarditem[Pennington et~al.]{Pennington, Socher \harvardand\
+  Manning}{2014}{Pennington2014}
+Pennington, J., Socher, R. \harvardand\ Manning, C.  \harvardyearleft
+  2014\harvardyearright , {Glove: Global Vectors for Word Representation}, {\em
+  in} `Proceedings of the 2014 Conference on Empirical Methods in Natural
+  Language Processing (EMNLP)', Association for Computational Linguistics,
+  pp.~1532--1543.
+
+\harvarditem[Ravasz et~al.]{Ravasz, Somera, Mongru, Oltvai \harvardand\
+  Barab{\'a}si}{2002}{ravasz2002hierarchical}
+Ravasz, E., Somera, A.~L., Mongru, D.~A. et al. \harvardyearleft 2002\harvardyearright , 
+`Hierarchical organization of modularity in metabolic networks', {\em Science} {\bf
+  297}(5586),~1551--1555.
+
+\harvarditem{Sahlgren}{2006}{Sahlgren-2006}
+Sahlgren, M.  \harvardyearleft 2006\harvardyearright , {The Word-Space Model:
+  using distributional analysis to represent syntagmatic and paradigmatic
+  relations between words in high-dimensional vector spaces.}, PhD thesis,
+  Stockholm University.
+
+\harvarditem[Schneider et~al.]{Schneider, Cannarozzi \harvardand\
+  Gonnet}{2005}{Schneider2005}
+Schneider, A., Cannarozzi, G. \harvardand\ Gonnet, G.  \harvardyearleft
+  2005\harvardyearright , `Empirical codon substitution matrix', {\em BMC
+  Bioinformatics} {\bf 6}(134).
+
+\harvarditem[Shannon et~al.]{Shannon, Markiel, Ozier, Baliga, Wang, Ramage,
+  Amin, Schwikowski \harvardand\ Ideker}{2003}{Shannon2003}
+Shannon, P., Markiel, A., Ozier, O., Baliga, N.~S., Wang, J.~T., Ramage, D.,
+  Amin, N., Schwikowski, B. \harvardand\ Ideker, T.  \harvardyearleft
+  2003\harvardyearright , `Cytoscape: A software environment for integrated
+  models of biomolecular interaction networks', {\em Genome Research} {\bf
+  13}(11),~2498--2504.
+
+\harvarditem{Small}{1973}{Small1973}
+Small, H.  \harvardyearleft 1973\harvardyearright , `Co-citation in the
+  scientific literature: A new measure of the relationship between two
+  documents', {\em Journal of the American Society for Information Science}
+  {\bf 24}(4),~265--269.
+
+\harvarditem{S{\o}rensen}{1948}{Sorensen48}
+S{\o}rensen, T.  \harvardyearleft 1948\harvardyearright , `{A method of
+  establishing groups of equal amplitude in plant sociology based on similarity
+  of species and its application to analyses of the vegetation on Danish
+  commons}', {\em {Biol. Skr.}} {\bf 5},~1--34.
+
+\harvarditem{Steyvers \harvardand\ Tenenbaum}{2005}{Steyvers2005}
+Steyvers, M. \harvardand\ Tenenbaum, J.~B.  \harvardyearleft
+  2005\harvardyearright , `{The large-scale structure of semantic networks:
+  statistical analyses and a model of semantic growth.}', {\em Cognitive
+  science} {\bf 29}(1),~41--78.
+
+\harvarditem{Watts \harvardand\ Strogatz}{1998}{Watts1998}
+Watts, D.~J. \harvardand\ Strogatz, S.~H.  \harvardyearleft
+  1998\harvardyearright , `{Collective dynamics of 'small-world' networks}',
+  {\em Nature} {\bf 393}(6684),~409--10.
+
+\harvarditem[Wong et~al.]{Wong, Liu \harvardand\
+  Bennamoun}{2012}{Wong2012ontology}
+Wong, W., Liu, W. \harvardand\ Bennamoun, M.  \harvardyearleft
+  2012\harvardyearright , `Ontology learning from text: A look back and into
+  the future', {\em ACM Comput. Surv.} {\bf 44}(4),~20:1--20:36.
+
+\harvarditem{Wu \harvardand\ Brutlag}{1996}{Wu96}
+Wu, T.~D. \harvardand\ Brutlag, D.~L.  \harvardyearleft 1996\harvardyearright ,
+  Discovering empirically conserved amino acid substitution groups in databases
+  of protein families, {\em in} D.~J. States, P.~Agarwal, T.~Gaasterland,
+  L.~Hunter \harvardand\ R.~Smith, eds, `Proceedings of the Fourth
+  International Conference on Intelligent Systems for Molecular Biology, St.
+  Louis, MO, USA, June 12-15 1996', {AAAI}, pp.~230--240.
+
+\harvarditem[Xie et~al.]{Xie, Szymanski \harvardand\ Liu}{2011}{Xie2011}
+Xie, J., Szymanski, B.~K. \harvardand\ Liu, X.  \harvardyearleft
+  2011\harvardyearright , {SLPA}: Uncovering overlapping communities in social
+  networks via a speaker-listener interaction dynamic process, {\em in} `ICDM
+  2011 Workshop on DMCCI'.
+
+\harvarditem{Yih \harvardand\ Qazvinian}{2012}{Yih12}
+Yih, W. \harvardand\ Qazvinian, V.  \harvardyearleft 2012\harvardyearright ,
+  Measuring word relatedness using heterogeneous vector space models, {\em in}
+  `Proceedings of the 2012 Conference of the North American Chapter of the
+  Association for Computational Linguistics: Human Language Technologies',
+  NAACL HLT '12, Association for Computational Linguistics, Stroudsburg, PA,
+  USA, pp.~616--620.
+
+\harvarditem[Yu et~al.]{Yu, Zhang, Lin, Zhang \harvardand\
+  Le}{2012}{Yu2012simrankOpt}
+Yu, W., Zhang, W., Lin, X. et al.  \harvardyearleft
+  2012\harvardyearright , `A space and time efficient algorithm for simrank
+  computation', {\em World Wide Web} {\bf 15}(3),~327--353.
+
+\harvarditem[Zaharia et~al.]{Zaharia, Chowdhury, Das, Dave, Ma, McCauly,
+  Franklin, Shenker \harvardand\ Stoica}{2012}{Zaharia-2012}
+Zaharia, M., Chowdhury, M., Das, T. et al. \harvardyearleft
+  2012\harvardyearright , Resilient distributed datasets: A fault-tolerant
+  abstraction for in-memory cluster computing, {\em in} `Presented as part of
+  the 9th USENIX Symposium on Networked Systems Design and Implementation (NSDI
+  12)', San Jose, CA, pp.~15--28.
+
+\harvarditem{Zhang \harvardand\ Horvath}{2005}{Zhang2005tom}
+Zhang, B. \harvardand\ Horvath, S.  \harvardyearleft 2005\harvardyearright , `A
+  general framework for weighted gene co-expression network analysis', {\em
+  Statistical applications in genetics and molecular biology} {\bf
+  4},~Article17.
+
+\end{thebibliography}
+
+\newpage
+
+\section*{Author Biographies}
+\leavevmode
+
+\vbox{
+\begin{wrapfigure}{l}{80pt}
+{\vspace*{-10pt} \includegraphics[width=65pt]{figures/olof.pdf}\vspace*{100pt}}
+\end{wrapfigure}
+\noindent\small 
+{\bf Olof G\"ornerup} is currently a senior researcher at the Swedish Institute of 
+Computer Science (SICS) in Stockholm. He received a MSc, a PhLic and a PhD in 
+complex systems from Chalmers University of Technology in Sweden in 2003, 2007 
+and 2008 respectively. During 2002--2004 he was a Graduate fellow at the Santa 
+Fe Institute in New Mexico, USA. His current research interests revolve around
+fundamental machine learning, data mining and data analytics, and their interdisciplinary
+applications.}
+
+\vspace{40pt}
+\vbox{
+\begin{wrapfigure}{l}{80pt}
+{\vspace*{-10pt}\includegraphics[width=65pt]{figures/daniel.pdf}\vspace*{100pt}}
+\end{wrapfigure}
+\noindent\small {\bf Daniel Gillblad} holds a MSc in electrical engineering 
+and a PhD in computer science, both from the Royal Institute of Technology 
+(KTH) in Sweden. He is currently the director of the Decisions, Networks and 
+Analytics (DNA) laboratory at the Swedish Institute of Computer Science (SICS). 
+The laboratory performs research within machine learning, data analytics, 
+networked intelligence, scheduling and optimisation, and their applications. 
+His research interests are currently focused around graph- and probabilistic 
+methods for large-scale data analytics and machine learning, network management, 
+diagnostics, and mobility modeling.}
+
+\vspace{30pt}
+\vbox{
+\begin{wrapfigure}{l}{80pt}
+{\vspace*{-10pt}\includegraphics[width=65pt]{figures/theo.pdf}\vspace*{100pt}}
+\end{wrapfigure}
+\noindent\small {\bf Theodore Vasiloudis} is a researcher at the Swedish Institute 
+of Computer Science (SICS) and a PhD candidate at the Royal Institute of Technology 
+(KTH) in Stockholm. His main research interests include large-scale machine learning, 
+graph processing and natural language processing. He is also a contributor to the 
+machine learning library for Apache Flink, FlinkML.}
+
+\vspace{50pt}
+
+\correspond{Olof G\"{o}rnerup, Swedish Institute of Computer Science (SICS),
+SE-164 29 Kista, Sweden. Email: olof@sics.se.}
+\label{lastpage}
+\end{document}
