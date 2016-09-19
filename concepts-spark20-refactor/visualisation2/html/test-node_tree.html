@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<head>
+    
+    <title>Test: Tree Group Maker</title>
+    
+    <script src= "../jslib/d3/d3.5.5.min.js"> </script>
+    <script src= "../js/node_group.js">       </script>
+    <script src= "../js/node_tree.js">        </script>
+    
+</head>
+
+
+<body>
+    
+  <h2>Pre grouping: </h2>
+  <pre id= "pre1">  </pre>
+    
+  <h2>Tree representation: </h2>
+  <pre id= "pre2">         </pre>
+    
+  <script>
+    
+    d3.json("../data/cncpt.json",
+            function(error, data) {
+        
+                var parents= node_tree.getParentNodes(node_group.mkGroupSet(data));
+                parents= node_tree.splitNodes(10, parents);
+        
+                var str_parents= JSON.stringify(parents, null, 2);
+        
+                //console.log(str_parents);
+        
+                d3.select("#pre1").text(str_parents);
+        
+                var tree= node_tree.getNodeTree(parents);
+                var str_tree= JSON.stringify(tree, null, 2);
+        
+                //console.log(str_tree);
+                d3.select("#pre2").text(str_tree);
+        
+                console.log("DONE")
+        
+    });
+    
+    
+  </script>
+
+
+</body>

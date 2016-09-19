@@ -1,0 +1,9 @@
+// Example of a local.sbt file for local configurations (such as heap sizes, java versions etc.)
+// Options defined here will override the default values in build.sbt
+// Copy this file to local.sbt and modify if you need local modifications.
+
+// JVM Options
+
+fork in run := true
+
+javaOptions in run := Seq("-Xmx10G", "-server")

@@ -1,0 +1,340 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{mathtools}
+\usepackage{color}
+
+\usepackage{listings}
+\lstdefinelanguage{Scala}{}
+\lstset{language=Scala, basicstyle={\small\ttfamily}}
+
+% For commenting
+\newcommand{\comment}[1]{{\small \color{red} {#1}} \normalcolor}
+% Use this line for leaving out comments
+%\newcommand{\comment}[1]{}
+
+% Todo
+%\newcommand{\todo}[1]{{\small \bf \color{red} {#1}} \normalcolor}
+% Use this line to leave out
+\newcommand{\todo}[1]{}
+
+% Notation commands (change all by changing here)
+% Defina a capital Rho
+\newcommand{\Rho}{\mathrm{P}}
+% Concept relation
+\newcommand{\rn}[1]{\rho_{#1}}
+% Concept L1 norm
+\newcommand{\rns}[1]{|\rn{#1}|_1}
+% Concept relation threshold
+\newcommand{\mrn}[1]{\tau_{#1}}
+% Discarded concept relation sum
+\newcommand{\drns}[1]{|\check{\rho}_{#1}|_1}
+% Kept concept relation sum
+\newcommand{\krns}[1]{|\hat{\rho}_{#1}|_1}
+% Concept relation vector
+\newcommand{\rv}{\Rho}
+% AND concept
+\newcommand{\acpt}{c_{\wedge}}
+% OR concept
+\newcommand{\ocpt}{c_{\vee}}
+% Concept similarity
+\newcommand{\sy}[1]{\sigma_{#1}}
+% Approximate concept similarity
+\newcommand{\asy}[1]{\tilde{\sigma}_{#1}}
+% L1 norm of difference
+\newcommand{\nm}[1]{L_1(#1)}
+\newcommand{\dnm}[2]{|\rn{#1}-\rn{#2}|_1}
+% Approximate L_1 norm
+\newcommand{\anm}[1]{\tilde{L}_1(#1)}
+
+\newcommand{\anonymous}{\emph{Withheld to retain anonymity.}}
+
+% Correct bad hyphenation here
+\hyphenation{op-tical net-works semi-conduc-tor kompetens-utveckling}
+
+\begin{document}
+
+\title{Higher-Order Concept Discovery at Scale }
+
+% Keep before submission to check page limit.
+\author{
+\IEEEauthorblockN{Olof G\"{o}rnerup}
+\IEEEauthorblockA{Swedish Institute of\\
+Computer Science (SICS)\\
+SE-164 29 Kista, Sweden\\
+Email: olof@sics.se}	
+\and
+\IEEEauthorblockN{Daniel Gillblad}
+\IEEEauthorblockA{Swedish Institute of\\
+Computer Science (SICS)\\
+SE-164 29 Kista, Sweden\\
+Email: dgi@sics.se}
+\and
+\IEEEauthorblockN{Theodore Vasiloudis}
+\IEEEauthorblockA{Swedish Institute of\\
+Computer Science (SICS)\\
+SE-164 29 Kista, Sweden\\
+Email: tvas@sics.se}
+}
+
+\maketitle
+
+\begin{abstract}
+In this paper we present a data-driven approach for discovering higher-order concepts --
+ nested abstractions and generalizations of data -- based on contextual correlation mining. 
+
+\end{abstract}
+
+%Note: ICDM omits keywords.
+%\IEEEpeerreviewmaketitle
+
+\section{Introduction}
+\label{sec:introduction}
+
+
+\section{Related work}
+\label{sec:related work}
+
+Data conceptualization is a broad area with many branches of research in several different domains, including artificial 
+intelligence, machine learning, statistical physics and computational biology, with diverse yet related topics such as 
+hierarchical clustering - in graphs and otherwise - ontology learning, representation learning, coarse-graining and deep 
+learning.
+
+\begin{itemize}
+\item Ontology learning: \cite{Wong2012ontology}.
+\item Hierarchical clustering/community detection: \cite{Fortunato10}.
+\item Correlation clustering: \cite{MacMahon15}.
+\item Bayesian concept learning: \cite{tenenbaum00}.
+\item Distributional semantics:  \cite{Harispe2015}, \cite{Pennington2014}, \cite{Mikolov-2013}.
+\item Deep learning: \cite{LeCun15}.
+\item Topic modeling: \cite{Blei12}.
+\item Coarse-graining: \cite{Saunders13}.
+\end{itemize}
+
+\comment{Check and cite related work in ICDM.}
+
+% Exchangeability and invariance
+
+%The principle of relating objects with respect to contextual information is employed in several different areas, including ontology 
+%learning, computational linguistics, bioinformatics and bibliometrics. The method that is closest in spirit to 
+%ours is SimRank \cite{Jeh2002simrank}, which is a general approach for obtaining similarities between vertices in a graph.
+% SimRank is an iterative method that uses the graph structure to derive similarities between objects by relating ``objects that are 
+% related to similar objects'' \cite{Jeh2002simrank}. The main drawback with their approach, however, is that it is not scalable due to 
+% a cubic time complexity with the number of vertices in the graph. This has partly been remedied in improved versions of the algorithm, 
+% such as the one by Yu et. al \cite{Yu2012simrankOpt}, but these are still too computationally demanding in order to be applicable on
+%  very large graphs. In comparison, we can comfortably run our algorithm on graphs with tens of millions of edges, doing only a single 
+%  pass over the data. Ravasz et al.\ propose a related approach for finding similar vertices using so called 
+%  topological overlap measures \cite{ravasz2002hierarchical}, which they apply on metabolic networks. Zhang et al. \cite{Zhang2005tom}
+%  generalized this approach for use on weighted gene co-expression networks. As in our case, these methods relate vertices by assigning 
+%  higher similarity scores to vertices that share many neighbors, but since their approaches are primarily tailored for bioinformatics tasks, 
+%  they lack the generality of SimRank and the method presented here.
+%  
+%In computational linguistics, distributional analysis -- where linguistic items are characterized by
+%their relative distributional properties in the data -- has become a fundamental approach \cite{Harris-1970}. We use
+%similar assumptions as a starting point, and when applied to text, the approach can be seen as transforming a graph
+%over syntagmatic similarities to one describing paradigmatic similarities \cite{Sahlgren-2006}, in which
+%concepts are discovered through clustering. A large number of methods to find semantic similarities have been
+%developed -- see \cite{Harispe2015} for a recent review -- from the seminal work by Church and Hanks \cite{Church90}, and Brown 
+%et al.\ \cite{Brown1992}, to more recent approaches, e.g.\ based on vector representations, such as GloVe 
+%\cite{Pennington2014}, and neural networks, such as word2vec \cite{Mikolov-2013}. 
+%Several of these methods could be used to produce the equivalent of the similarity graph in which we perform
+%clustering to find concepts. These methods, however, are limited to natural language processing while our approach 
+%is domain-agnostic. Another important difference is that our method builds similarity graphs without 
+%using any dimensionality reduction or intermediate representations, such as high-dimensional vectors 
+%or difficult-to-interpret neural networks. The advantage of using a direct graph representation is that it allows us to
+%understand and reason about higher-scale structures among objects and concepts, such as hierarchical organization, in a straightforward 
+%manner using established graph and network methods. Although graph representations are used in natural language processing to relate 
+%similar words and documents \cite{Mihalcea2011}, these approaches have several limitations in comparison to our 
+%approach, e.g.\ by expecting existing similarity graphs as input, using ad hoc word relations (such as linking words separated 
+%by \emph{and} or \emph{or}), requiring part-of-speech tagged data, or by using human curated datasets, such as WordNet \cite{miller1995wordnet}.
+%
+%Another related area is ontology learning \cite{Wong2012ontology}, which aims to infer taxonomies 
+%from corpora and other data sources. While one can draw parallels between our work and this field, the latter is often limited 
+%by exclusively considering a specific type of basic building blocks, such as nouns, where these are related in 
+% hierarchies with respect to specific relations, such as \emph{is a} and \emph{part of}. Similarly, context-based similarity
+%  discovery can also be viewed as a generalization of methods in bibliometrics, where citation patterns among a set of 
+%  documents, such as scientific papers, are studied. Using so called bibliographic coupling to relate papers  \cite{Kessler1963} 
+%  -- i.e.\ the similarity between two papers is based on the number of  citations they share -- is a special case of our approach 
+%  for relating two objects in the correlation graph. Another resemblance is that  these and similar measures are used to cluster 
+%  scientific papers \cite{Small1973} as well as web pages \cite{Larson96}. The method presented here could be employed in 
+%  the very same way -- where binary correlations are given by citations -- to efficiently relate a large number of documents.
+
+\section{Background}
+\label{sec:background}
+
+\subsection{Preliminaries}
+\label{sec:preliminaries}
+
+Here we employ the terminology used in \cite{gornerup15}: $C = \{i\}_{i=1}^n$ is a set of \emph{objects}, 
+where each object has a correlation, $\rn{i,j}$, to each other object. The \emph{context} of an object $i$ is  its 
+vector of correlations to every other object, $\rn{i} = (\rn{i,j})_{j=1}^n$. The similarity between two objects $i$ and 
+$j$, $\sy{i,j}  \in [0, 1]$, is defined in terms of the relative $L_1$-norm of the difference between $\rn{i}$ and $\rn{j}$:
+\begin{equation}\label{eq:sim}
+\sy{i,j} = 1 - \frac{\dnm{i}{j}}{\rns{i} + \rns{j}},
+\end{equation}
+where
+\begin{equation}\label{eq:totrel}
+\rns{i} = \sum_{k \in C} | \rn{i,k}|
+\end{equation}
+and
+\begin{equation}\label{}
+\dnm{i}{j} =  \sum_{k \in C} | \rn{i,k} - \rn{j,k} |.
+\end{equation}
+
+In the \emph{correlation graph} of $C$ with respect to $\rn{i,j}$, denoted $\mathcal{R} = (C, R)$, 
+vertices constitute objects and  edges $r_{i,j} \in R$ have weights $\rn{i,j}$. The \emph{similarity graph} of $C$ with 
+regard to $\rn{i,j}$, denoted $\mathcal{S} = (C, S)$, is the undirected graph where weights of edges $s_{i,j} \in S$ are 
+given by $\sy{i,j}$. 
+
+An \emph{atom} is an object explicitly observed in data. An \emph{AND concept}, $\acpt$, is a set of objects that are strongly inter-correlated, whereas an 
+\emph{OR concept}, $\ocpt$, is a set of objects that are strongly inter-similar. These concept types correspond to clusters in the 
+correlation- and similarity graph, respectively. A concept is also an object, and so there may be higher-order concepts of
+arbitrary order.
+
+An \emph{example}, $e$, is a set of atoms. This could for example be a set of tokens occuring in a sentence or in a window of some given size.
+An atom $i$ is said to be \emph{active} in an example $e$ if $i \in e$. An AND concept $\acpt$ is active in $e$
+if \emph{all} of its constituents $i \in \acpt$ are active in $e$, and an OR concept $\ocpt$ is active in $e$ if \emph{any} if its
+constituents $i \in \ocpt$ is active in $e$. Being active is in other words synonymous with being present.
+
+\subsection{Example}
+
+%\begin{figure}
+%\begin{center}
+%\includegraphics[width=0.45\columnwidth]{figures/concept-example.pdf}
+%\end{center}
+%\caption{Example of higher-order concept.}
+%\label{fig:label}
+%\end{figure}
+
+\section{Methods}
+\label{sec:methods}
+
+
+\subsection{Higher-order concept discovery}
+\label{subsec:conceptDiscovery}
+
+The basic principle of our approach is to iteratively discover higher-order AND and OR concepts from the bottom-up,
+starting with first-order singleton concepts (AND or OR, which are identical, constituted by single atoms). 
+The method can be summarized in the following steps:
+
+\begin{enumerate}
+\item Build a correlation graph for all concepts.
+\item Transform the correlation graph to a similarity graph.
+\item Find AND and OR candidate concepts by clustering the vertices in the graphs.
+\item Discard redundant candidate concepts, which are strongly correlated with existing concepts.
+Add the remaining candidate concepts to all concepts.
+\item Repeat from 1) for a given number of times or until no more concepts are found.
+\end{enumerate}
+
+\subsection{Implementation}
+\label{subsec:algorithmsAndImplementation}
+
+\subsubsection{Algorithm}
+\label{subsec:algorithm}
+
+Let $C_c$ be the set of atoms and concepts discovered in the current iteration, and $C_t$ the total set of atoms and concepts found so far. 
+The algorithm uses \emph{example counts}, $\Gamma$, which are ($i, e, n_e$) triplets, where $i$ is an atom or concept that is active in example $e$, and
+where $e$ occurs $n_e$ times. Let $\Gamma_c$ and $\Gamma_t$ be the example counts for the concepts in $C_c$ and $C_t$, respectively. 
+
+\begin{enumerate}
+
+\item Initialization
+
+\begin{enumerate}
+\item
+Set both $C_c$ and $C_t$ to be the set of atoms observed in data. 
+\item 
+Calculate $\Gamma_c$ and $\Gamma_t$ with respect to all atoms by counting the number of example occurrences and associating
+these with the corresponding activated atoms.
+\item
+Calculate the pairwise counts $m_{i,j} = (i, j, n_i, n_j, n_{i,j})$, where $n_i$ is the total activation count of object $i$, $n_j$ the total count of object $j$
+and $n_{i,j}$ is the number of times $i$ and $j$ are activated in the same example.
+\item
+Calculate the correlations $\rho_c  = \{\rn{i,j}: i \in C_c,\ j \in C_t,\ i \not \in j\}$ 
+between atoms in $C_c$ and $C_t$, using $m_{i,j}$ and the total count for all objects.
+\item
+Build a correlation graph $\mathcal{R} = (C_t, R_c)$, where weights of edges in $R_c$ are given by $\rho_c$.
+
+\end{enumerate}
+
+\item Iteration
+\begin{enumerate}
+\item
+\label{to-sim-graph}
+Transform $\mathcal{R}$ to a similarity graph $\mathcal{S}$ with edges $(i, j)$, where $i \not\in j$. That is,
+we discard a similarity relation if $i$ is a member of a concept $j$.
+\item
+Find \emph{candidate} AND and OR concepts, $C'_c$, by clustering the vertices in $\mathcal{R}$ and $\mathcal{S}$.
+\item
+Set $\Gamma_c$ as the counts for concepts in $C'_c$ that are active in examples. 
+\item
+Count activations $m'_{i,j}$ for $i \in C'_c$, $j \in C'_c \cup C_t$ and $i \not\in j$. This is the number of co-activations
+ among candidate concepts, and between candidate concepts and prior objects. Again, we discard counts where object $i$ is a member of concept $j$.
+\item
+Calculate correlations $\rho'_c  = \{\rn{i,j}: i \in C'_c,\ j \in C_t,\ i \not \in j\}$ 
+\item
+Build a \emph{candidate} correlation graph $\mathcal{R}'_c$ with edges given by $\rho'_c$.
+\item
+Set $\mathcal{R}$ to $\mathcal{R}'_c$ without edges for which $\rn{i,j} > \hat\rho$, $i \in C'_c$ and $j \in C_t$, where $\hat\rho$ is a threshold value.
+\item
+Set $C_c$ to be the members in $C'_c$ that each has at least one edge in $\mathcal{R}$.
+\item
+Add $C_c$ to $C_t$.
+\item
+Repeat from \ref{to-sim-graph}) a given number of times or until no more concepts are found.
+\end{enumerate}
+
+\end{enumerate}
+
+\section{Experiments}
+\label{sec:experiments}
+
+
+\section{Scalability}
+\label{sec: scalability}
+
+
+\section{Conclusions}
+\label{sec:conclusions}
+
+
+\section*{Acknowledgment}
+%This work was funded by the Swedish Foundation for Strategic Research (\emph{Stiftelsen f\"or strategisk forskning}) 
+%and the Knowledge Foundation (\emph{Stiftelsen f\"or kunskaps- och kompetensutveckling}). 
+%The authors would like to thank the anonymous reviewers for their valuable comments.
+%\anonymous
+
+% trigger a \newpage just before the given reference
+% number - used to balance the columns on the last page
+% adjust value as needed - may need to be readjusted if
+% the document is modified later
+%\IEEEtriggeratref{8}
+% The "triggered" command can be changed if desired:
+%\IEEEtriggercmd{\enlargethispage{-5in}}
+
+% references section
+
+% can use a bibliography generated by BibTeX as a .bbl file
+% BibTeX documentation can be easily obtained at:
+% http://www.ctan.org/tex-archive/biblio/bibtex/contrib/doc/
+% The IEEEtran BibTeX style support page is at:
+% http://www.michaelshell.org/tex/ieeetran/bibtex/
+%\bibliographystyle{IEEEtran}
+% argument is your BibTeX string definitions and bibliography database(s)
+%\bibliography{IEEEabrv,../bib/paper}
+%
+% <OR> manually copy in the resultant .bbl file
+% set second argument of \begin to the number of references
+% (used to reserve space for the reference number labels box)
+%\begin{thebibliography}{1}
+%\bibitem{IEEEhowto:kopka}
+%H.~Kopka and P.~W. Daly, \emph{A Guide to \LaTeX}, 3rd~ed.\hskip 1em plus
+%  0.5em minus 0.4em\relax Harlow, England: Addison-Wesley, 1999.
+%\end{thebibliography}
+
+%\newpage
+
+\bibliographystyle{IEEEtran}
+\bibliography{higher-order-concepts}
+
+\end{document}
+
+

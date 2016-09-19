@@ -1,0 +1,41 @@
+In this section we will provide a brief overview of the algorithm
+and describe its implementation using the in-memory data processing
+framework Spark \cite{Zaharia-2012}.
+
+%The algorithm was designed with scalability as a focus.
+
+We can divide the implementation in three phases. In the first phase,
+the source data are transformed into co-occurrence pairs. In this phase
+we create pairs of concepts according to the \textit{context} that we defined
+in Section \ref{sec:preliminaries}
+and attach the count of the co-occurrences to the pair.
+At the end of this phase we have a key-value table with elements of type
+$\{(concept_i, concept_j) => count\}$. %TODO Remove? Perhaps better to label concepts as c_f(ocus) and c_c(ontext)
+This step lends
+itself to the MapReduce programming paradigm and can be very efficiently
+implemented in Spark.
+
+In the second phase the relation graph is created. In this phase the counts
+of the co-occurrence pairs are transformed into relation values. We have experimented
+with two ways of transforming the counts: using \comment{conditional?} probabilities and point-wise
+mutual information (PMI). %TODO Do we show any results with PMI? Shoud we mention it?
+We define the probability of a concept pair $(concept_i, concept_j)$ as the conditional
+probability of encountering the focus concept, $concept_i$, in the context
+of $concept_j$. %TODO Add math here, write about PMI, vertex weight calculation
+We represent the relation graph using an \textit{edges} and a \textit{vertices} table. %TODO Mention RDDs?
+The edges table consists of key-value pairs of type
+$\{(concept_i, concept_j) => probability\}$ and the vertices table consists of
+${concept_i => weight_i}$. %TODO Remove?
+
+The third and final phase of the algorithm is the creation of the similarity graph,
+using the relation graph as input. As we described in Section \ref{sec:similaritycalculations},
+this is done by first creating an intermediate two-hop multigraph of R, %TODO In 3.1 we say of S, why?
+The two-hop multigraph can be \comment{efficiently?} created by performing a self-join on the vertices table,
+using the context $concept_j$ as the join key.
+%TODO Mention complexity of finding list of two-hop neighbor list? $O(n^\omega)$ i.e. complexity of finding matrix product.
+Since this operation can become the main bottleneck in our algorithm, it is important that we reduce the input size
+as much as possible while retaining as much information as possible. To this end, we prune the relation graph
+by cutting away edges and vertices that do not contribute much information to the graph. %TODO Phrasing correct here?
+% TODO(tvas): Mention Zipf's law somewhere
+
+Note that alternative implementations using e.g. message passing in a graph framework are possible, and may be desirable for real-time (non-batch oriented) applications.

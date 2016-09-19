@@ -1,0 +1,218 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{cite}
+\ifCLASSINFOpdf
+  \usepackage[pdftex]{graphicx}
+ \graphicspath{{./graphics}}
+ \DeclareGraphicsExtensions{.pdf}
+\else
+ \usepackage[dvips]{graphicx}
+ \graphicspath{{./graphics}}
+ \DeclareGraphicsExtensions{.eps}
+\fi
+
+\usepackage[cmex10]{amsmath}
+\usepackage{algorithm, algorithmic}
+\usepackage{array}
+\usepackage{mdwmath}
+\usepackage{mdwtab}
+\usepackage{eqparbox}
+\usepackage{bm}
+\usepackage{stfloats}
+\usepackage{url}
+\usepackage{marginnote}
+\usepackage{mathtools}
+
+% For commenting
+%\newcommand{\comment}[1]{{\small \color{red} {#1}} \normalcolor}
+% Use this line for leaving out comments
+\newcommand{\comment}[1]{}
+
+% Notation commands (change all by changing here)
+% Define digamma symbol
+\newcommand{\digamma}{\psi}
+% Define trigamma symbol
+\newcommand{\trigamma}{\psi_1}
+% Define log gamma scale symbol
+\newcommand{\lgammalocation}{\mu}
+% Define log gamma scale symbol
+\newcommand{\lgammascale}{\sigma}
+
+\DeclareMathOperator\erf{erf}
+
+\begin{document}
+\title{Conservative Mutual Information measures based on posterior variance estimates}
+\author{\IEEEauthorblockN{Daniel Gillblad, Olof G\"{o}rnerup, Theodore Vasiloudis}
+  \IEEEauthorblockA{Decisions, Networks and Analytics (DNA) Laboratory \\
+    Swedish Institute of Computer Science (SICS)\\
+    SE-164 29 Kista, Sweden \\
+    Email: \{dgi, olof, tvas\}@sics.se}}
+\maketitle
+\begin{abstract}
+  \boldmath Conservative MI.
+\end{abstract}
+
+%\IEEEmaketitle
+
+\section{Introduction}
+
+\section{Related work}
+
+\section{Conservative Mutual Information measures}
+
+\subsection{Preliminaries}
+
+Consider the discrete random variables $i \in \{1,\ldots,r\}$ and $j \in \{1,\ldots,s\}$, with samples $(i,j) \in \{1,\ldots,r\} \times j \in \{1,\ldots,s\}$ drawn from an i.i.d random process with joint probability $\pi_{ij}$. The \emph{Mutual Information} \cite{Cover-1991} between $i$ and $j$ can then be written as
+\begin{equation}
+\label{eq:mi}
+I[\pi] = \sum_{ij} \pi_{ij} \log \frac{\pi_{ij}}{\pi_{i+}\pi_{+j}}
+\end{equation}
+where $\pi_{i+}$ and $\pi_{+j}$ are the marginal probabilities. Essentially representing one term of the Mutual Information, the \emph{Pointwise Mutual Information} \cite{Church-1990} between outcomes $i$ and $j$ can be written as
+\begin{equation}
+\label{eq:pwmi}
+I_{pw}[\pi_{ij}] = \log \frac{\pi_{ij}}{\pi_{i+}\pi_{+j}}
+\end{equation}
+
+Frequency estimates $\pi_{ij} = n_{ij} / n$ (where $n_{ij}$ is the number of examples of $(i,j)$ and $n$ total sample set size) can be used to derive point estimates of the above expressions from a data set. Here, we assume the use of a prior that leads to a Dirichlet posterior distribution (true for many non-informative priors) $p(\pi|\pmb{n}) \propto p(\pi) \prod_{ij} \pi_{ij}^{n_{ij-1}} $, where $n_{ij} = n'_{ij} + n''_{ij}$, $n'_{ij}$ represents the number of examples $(i,j)$ and $n''_{ij}$ represents prior information. This allows us to calculate the posterior probability density of the correlation measures.
+
+Finally, we let $c$ denote a \emph{confidence level}, here referring to the fraction of (the absolute value of) all possible correlation values which we expect to be equal to or larger than (the absolute value of) our conservative measure.
+
+\subsection{Mutual Information}
+
+Assuming a Dirichlet posterior, the exact expectation of the Mutual Information can be written as
+\begin{equation}
+\label{eq:miexp}
+E[I] = \frac{1}{n} \sum_{ij} [ \digamma(n_{ij} + 1) - \digamma(n_{i+} + 1) -
+\digamma(n_{+j} + 1) + \digamma(n + 1) ]
+\end{equation}
+where $\digamma$ refers to the digamma function. While the variance of the Mutual Information can be calculated exactly \cite{Wolf-1993}, the expression is somewhat convoluted (and possibly somewhat slow to calculate). Here, we will instead use the approximation of the variance derived by Hutter \cite{Hutter-2001}, which can be written as
+\begin{equation}
+Var^*[I] = \frac{K - J^2}{n + 1} + O(n^{-2})
+\end{equation}
+where
+\begin{equation}
+K := \sum_{ij} \frac{n_{ij}}{n} \log \frac{n_{ij}n}{n_{i+}n_{+j}}
+\end{equation}
+and
+\begin{equation}
+J := \sum_{ij} \frac{n_{ij}}{n} \left( \log \frac{n_{ij}n}{n_{i+}n_{+j}} \right) ^ 2
+\end{equation}
+
+We assume that the posterior over the Mutual Information is Log-Normal $\ln \mathcal{N}(\mu, \sigma)$, where $\mu$ represents the scale and $\sigma$ the shape. Here,
+\begin{equation}
+\lgammascale^2 = \log \left( 1 + \frac{Var^*[I]}{E[I]^2} \right)
+\end{equation}
+and
+\begin{equation}
+\lgammalocation = \log(E[I]) - \frac{\lgammascale^2}{2}
+\end{equation}
+which allows us to define the \emph{Conservative Mutual Information} as
+\begin{equation}
+I^c = \exp[\lgammalocation + \sqrt{2 \cdot \lgammascale^2} \cdot \erf^{-1}(2c - 1)]
+\end{equation}
+essentially representing the value for which the fraction $c$ of the density of the posterior of $I$ is above.
+
+\subsection{Pointwise Mutual Information}
+
+Assuming a Dirichlet posterior, the expectation of the Pointwise Mutual Information can be written as
+\begin{equation}
+\label{eq:pwmiexp}
+E[I_{pw}] = \digamma(n_{ij}) - \digamma(n_{i+}) - \digamma(n_{+j}) + \digamma(n)
+\end{equation}
+and the variance bounded to
+\begin{eqnarray}
+Var_{\max}[I_{pw}] & = & \trigamma(n_{ij}) + \trigamma(n_{i+}) + \trigamma(n_{+j}) - 3 \trigamma(n) + \nonumber \\
+&& 2 \sqrt{(\trigamma(n_{ij} - \trigamma(n))(\trigamma(n_{i+}) - \trigamma(n))} + \nonumber \\
+&& 2 \sqrt{(\trigamma(n_{ij} - \trigamma(n))(\trigamma(n_{+j}) - \trigamma(n))} + \nonumber \\
+&& 2 \sqrt{(\trigamma(n_{i+} - \trigamma(n))(\trigamma(n_{+j}) - \trigamma(n))} \nonumber \\
+\label{eq:pwmivarmax}
+\end{eqnarray}
+where $\trigamma$ denotes the trigamma function. The derivation of these expressions can be found in Appendix A.
+
+For the Pointwise Mutual Information, we assume that the posterior is normal distributed, and we can calculate a quantile
+\begin{equation}
+q = \sqrt{2 \cdot Var_{\max}[I_{pw}]} \cdot \erf^{-1}(2c - 1)
+\end{equation}
+representing the value for which a fraction $c$ of the posterior density will be above.
+Finally, we can then define the \emph{Conservative Pointwise Mutual Information} as
+\begin{equation}
+I^c_{pw} = \left\{ \begin{array}{rl}
+\max(E[I_{pw}] - q, 0) &\mbox{ $E[I_{pw}] \geq 0$} \\
+\min(E[I_{pw}] + q, 0) &\mbox{ $E[I_{pw}] < 0$}
+\end{array} \right.
+\end{equation}
+That is, we reduce the magnitude of the expectation by the quantile $q$, threshold at zero and adjust for the sign of the expectation.
+
+\subsection{Numerical considerations}
+
+\subsection{Reducing the number of correlation calculations based on marginal counts}
+
+\section{Experiments}
+
+\section{Conclusions}
+
+Some conclusions. No prior best?
+
+\section*{Appendix A: Expectation and variance of Pointwise Mutual Information}
+
+Rewriting expression \ref{eq:pwmi} as
+\begin{equation}
+I_{pw}[\pi_{ij}] = \log \pi_{ij} - \log \pi_{i+} - \log \pi_{+j}
+\end{equation}
+and noting that under a Dirichlet distribution
+\begin{equation}
+E[\log \pi_{ij}] = \digamma(n_{ij}) - \digamma \left(\sum_{ij} n_{ij} \right) =
+\digamma(n_{ij}) - \digamma(n)
+\end{equation}
+we can write the expectation of the PWMI as in \ref{eq:pwmiexp}.
+
+To derive the variance, we use the fact that for a Dirichlet distribution $X$ with parameters $\bm{n}$
+\begin{equation}
+Cov[\log X_i, \log X_j] = \trigamma(n_i) \delta_{ij} - \trigamma \left( \sum_k n_k \right)
+\end{equation}
+where $\delta_{ij}$ is the Kroenecker delta, and thus
+\begin{equation}
+\label{eq:varlog}
+Var[\log X_i] = \trigamma(n_i) - \trigamma \left( \sum_k n_k \right) = \trigamma(n_i) - \trigamma(n)
+\end{equation}
+We can then write the variance of the Pointwise Mutual Information as
+\begin{eqnarray}
+Var[I_{pw}] & = & Var[\log \pi_{ij}] + Var[\log \pi_{i+}] +\nonumber \\
+&& Var[\log \pi_{+j}] - 2Cov[\log \pi_{ij}, \log \pi_{i+}] - \nonumber \\
+&& 2Cov[\log \pi_{ij}, \log \pi_{+j}] -  \nonumber \\
+&& 2Cov[\log \pi_{i+}, \log \pi_{+j}] \nonumber
+%&=& \trigamma(n_{ij}) + \trigamma(n_{i+}) + \trigamma(n_{+j}) + \nonumber \\
+%&& 3 \trigamma(n)
+\end{eqnarray}
+Using that
+\begin{equation}
+|Cov(X,Y)| \leq \sqrt{Var(X),Var(Y)}
+\end{equation}
+we can find the upper bound of the variance,
+\begin{eqnarray}
+Var[I_{pw}] & \leq & Var[\log \pi_{ij}] + Var[\log \pi_{i+}] + Var[\log \pi_{+j}]\nonumber \\
+&& + 2\sqrt{Var[\log \pi_{ij}]Var[\log \pi_{i+}]} \nonumber \\
+&& + 2\sqrt{Var[\log \pi_{ij}]Var[\log \pi_{+j}]} \nonumber \\
+&& + 2\sqrt{Var[\log \pi_{i+}]Var[\log \pi_{+j}]}
+\end{eqnarray}
+Substituting \ref{eq:varlog} into this expression, we arrive at equation \ref{eq:pwmivarmax}.
+
+\section*{Appendix B: Co-occurrence and probability measures}
+
+In many cases, it is most suitable to measure the degree of correlation as e.g. a co-occurrence or transition probability $p$. Assuming a beta prior $Beta(\alpha,\beta)$, the posterior becomes
+\begin{equation}
+P(p|\alpha,\beta, D) = Beta(\alpha + n_1, \beta + n_0)
+\end{equation}
+where $n_1$ and $n_0$ represent positive and negative counts respectively. Thus, $n_1$ represents the number of co-occurrences and $n_0$ the remaining occurrences $N-n_1$.
+
+If we refer to the inverse CDF of the beta distribution as $I^{-1}_p(\alpha,\beta,q)$ where $q$ is our desired quantile, we can then simply define our \emph{conservative co-occurence measure} as
+\begin{equation}
+p^c= 1 - I^{-1}_p(\alpha,\beta,c)
+\end{equation}
+
+While the inverse CDF does not exist in simple closed form for the Beta distribution, it can be computed numerically.
+
+\bibliographystyle{IEEEtran}
+\bibliography{conservativemi}
+
+\end{document}
+

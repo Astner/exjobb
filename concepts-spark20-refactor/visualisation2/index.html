@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+
+<html>
+    
+<head>
+    
+    <meta charset="UTF-8">
+    
+    <title>
+        Concept Visualiser
+    </title>
+    
+	<link rel="stylesheet" 
+          type="text/css" 
+          href="jslib/jquery-easyui/1.4.2/themes/bootstrap/easyui.css"
+    >
+    
+	<link rel="stylesheet" 
+          type="text/css" 
+          href="jslib/jquery-easyui/1.4.2/themes/icon.css"
+    >
+    
+	<script src= "jslib/jquery/1.11.2/jquery.min.js">
+    </script>
+    
+	<script src="jslib/jquery-easyui/1.4.2/jquery.easyui.min.js">
+    </script>
+    
+    <script src= "jslib/d3/d3.5.5.min.js">
+    </script>
+      
+    <script src= "js/node_group.js">
+    </script>
+    
+    <script src= "js/uri_parameter.js">
+    </script>
+    
+    <script src= "js/vis_config.js">
+    </script>
+    
+    <style>
+        
+        @import url("css/default_style.css");
+        
+        body {
+            
+            font-family:      verdana,helvetica,arial,sans-serif;
+            padding:          20px;
+            font-size:        12px;
+            margin:           10;
+            background-color: rgb(250,250,250);
+        }
+        
+    </style>
+    
+</head>
+    
+<body onload= "getDataAndDraw()">
+    
+    <h1 style= "float: left;"> Concept Visualiser </h1> <br>
+    
+    <div align="right" style= "font-size: 20px;">
+        
+        <a href="help.html"
+           target="_blank"
+        > 
+            Help Text
+        </a>
+        
+    </div>
+    
+    <br>
+    <br>
+    
+    <div id= "vis-main">
+        
+    <div class=        "easyui-layout"
+         data-options= "fit: 'true'"
+    >
+        
+        <div id=           "system_menu"
+             data-options= "region:'north', title:'System Menu'" 
+        >
+            
+            <div id= "buttons">
+
+                
+                
+            </div>
+            
+            <form  style= "float: right">
+                    <input type=         "text"
+                           name=         "graph_data" 
+                           placeholder=  "Data set" 
+                           size=         "50" 
+                           autocomplete= "on"
+                    >
+                
+            </form>
+            
+        </div>
+        
+		
+        
+		
+		<div id= "vis_pane"
+             data-options= "region:'center'">
+        
+		</div>
+        
+	    <div id= "console"
+             data-options= "region:'south',
+                            split:true,
+                            title:'Console'"
+             scrolling=    "yes"
+         >
+            
+         </div>
+    </div>
+    </div>
+    
+    <footer>
+        <h2>
+            SICS, Swedish Institute of Computer Science, 2015
+        </h2>
+    </footer>
+    
+    <script>
+        
+        // --- INIT - to run when page is loading ---
+        
+        (function() {
+            
+            var frame;
+            var iframe;
+            var buttons;
+            
+            for (var id in vis_config.frames){
+            
+                // --- IFrames ---
+                
+                frame= vis_config.frames[id];
+            
+                console.log(id, "loaded: ", frame.insert);
+            
+                if (frame.insert === "yes") {
+                
+                    iframe= d3.select("body div#vis_pane").append("iframe").attr("id", id);
+                
+                    for (var key in frame){
+                        iframe.attr(key, frame[key]);
+                  
+                    }
+                }
+            
+                // --- Buttons ---
+                
+                buttons= vis_config.buttons[id];
+                
+                for(var index in buttons){
+                
+                        // console.log(buttons[index]);
+                    
+                        d3.select("body div#buttons").append("button")
+                                                .text(buttons[index]["text"])
+                                                .attr("onclick", buttons[index]["onclick"])
+                }  
+            }
+        }());
+        
+        // ---
+
+        var consolePrint= (function(){
+                              var console_div= d3.select("body #console").append("div");
+                              return function(str){
+                                       console_div.text(str);
+                                     }
+                            }());
+
+        // ---
+
+        $(window).resize(function() {
+                            $('#vis-main').css('height', window.innerHeight-190);
+                         })
+                 .resize();
+        
+        
+        // --- Funs to run when page is loaded ---
+
+        function draw(data){
+
+            var gnodes;
+            var group_set= node_group.mkGroupSet(data);
+            var frame;
+
+            data= node_group.setGroupId("sgroup", data, group_set);
+
+            // ---
+
+            for (var id in vis_config.frames){
+
+                // --- IFrames ---
+
+                frame= vis_config.frames[id];
+
+                if(frame.insert === "yes") {
+
+                    if(id === 'fd_graph'){
+
+                        gnodes= document.getElementById(id)
+                                        .contentWindow.draw(consolePrint, group_set, data);
+
+                    } else if(id === 'tree') {
+
+                        document.getElementById(id)
+                                .contentWindow.draw(gnodes, group_set, data);
+
+                    } else if(id === 'fd_tree') {
+
+                        document.getElementById(id)
+                                .contentWindow.draw(group_set, data);
+
+                    } else {
+
+                         document.getElementById(id) 
+                                 .contentWindow
+                                 .draw(data);
+                    }
+                }
+            }
+        }
+
+        // ---
+
+        function getDataAndDraw(){
+
+            // Get data uri, default to examplegraph.json
+
+            var data_uri = uri_parameter.get("graph_data");
+            var data_path= "data/";
+
+            if (data_uri === null){
+                data_uri= data_path + "cncpt.json";
+            }
+            else {
+
+                data_uri= data_path + data_uri;
+            }
+
+            // ---
+
+            d3.json(data_uri,
+                    function(error, data) {
+                        if(error){
+                            console.log(error);
+                            alert(error); 
+                        } 
+                        else {
+                            draw(data);
+                        }
+                    }   
+                   );
+
+            console.log("--- STARTUP DONE ---");
+        }
+        
+    </script>
+    </body>
+    
+</html>

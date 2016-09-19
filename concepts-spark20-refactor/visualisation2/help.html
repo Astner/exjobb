@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<head>
+    
+    <title> Help Text: Concept Visualiser </title>
+    
+    <style>
+        
+        @import url("css/graphstyle.css");
+        
+        body {
+        margin-left: 20px;
+        max-width: 750px;
+        background-color:whitesmoke;
+        }
+        
+    </style>
+    
+</head>
+
+<body>
+
+    <div>
+        
+        <h2>
+            Concept Visualiser
+        </h2>
+        
+        The Concept Visualiser window consists of three main parts. A system menu, a visualisation pane and a console. The system menu has a fixed height. The visualisation pane and the console resides in a split pane with a shared height, where the proportions can be adjusted interactively. The overall proportions of the split pane depends on the size and scale of the browser window. When the browser window is resized the tree parts of the Concept Visualiser are resized accoringly and as a group. 
+        
+        <h3>
+            &bull; System Menu
+        </h3>
+            The System menu currently contains an input field for chosing data input and buttons for showing and hiding the visualisation windows residing in the Visualisation Pane. The System Menu can be collapsed to gain more space for the Visualisation Pane.
+        
+        <h3>
+            &bull; Visualisation Pane 
+        </h3>
+        The Visualisation Pane is the area where the visualisation sub-windows are residing/floating. Each sub-window can be draged, resized, collapsed, hidden and brought forward. Currently the maximal size of a sub-window is set to depend on the max size of the undelying svg element. Sub-windows are not resized when the browser window is resized but proportionally rescaled when the browser content window is zoomed in/out.
+        
+        <h3>
+            &bull; Console
+        </h3>
+            The Console is the area where textual output from interacting with visualisations gets printed. The Console is not to be confused with the JavaScript or browser console. The Console can be collapsed to gain more space for the Visualisation Pane.
+        
+        <h3>
+            &bull; FD Graph Interaction Commands
+        </h3>
+        - Double-click on empty area to zoom in, shift-double-click to zoom out.                                 <br>
+        - Click and drag on empty area to pan.                                                                   <br>
+        - Double-click on node to highlight immediate neighours.                                                 <br>
+        - Hold shift key and click on node to display node prop's in console.                                    <br>
+        - Hold ctrl+shift keys (command+shift on Mac) and double-click on node to highlight connected sub graph. <br>
+        - To search for specific node, hold ctrl key (command on Mac) and click on any node.                     <br>
+        - Please note that smaller graphs tends to be placed slightly outside the visible (lower right) part of the canvas at startup.      <br>
+        
+        <h3>                                                                                    
+            &bull; Tree Interaction Commands
+        </h3>
+        - Double click on node or link to zoom in. Hold shift and double click to zoom out.                      <br>
+        - Alternatively point on node or link and use scroll wheel or corresponding gesture.                     <br>
+        - Hold alt key and click on a node to expand or collapse.                                                <br>
+        - Hold ctrl key (command key on Mac) and click on node to mark corresponding nodes in FD Graph.          <br>
+        - To reset marks, hold ctrl+alt keys (command+alt keys on Mac) and click on node or parent.              <br>
+    
+        <h3>                                                                                    
+            &bull; FD Tree Interaction Commands
+        </h3>
+        - Point cursor over node to show node name (as a tooltip).    <br>
+        - To drag node, point cursor over node and press mouse key.   <br>
+        - To collapse/expand a parent node, click once on node. The size of a collapsed node is meant to reflect its number of children. <br>
+        - Zoom and pan works as in the FD Graph desribe above.         <br>
+        
+    </div>
+    
+</body>
