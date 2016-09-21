@@ -143,8 +143,10 @@ def extractKey(line):
         return ((split[0]),None)
 
 
+uniqueTrainKeysRDD = trainRDD.flatMap(lambda line: extractKey(line)).distinct()
 uniqueValKeysRDD = valRDD.flatMap(lambda line: extractKey(line)).distinct()
 print('\n\nNr of items in unique validation keys RDD: %d \n\n' % (uniqueValKeysRDD.count()))
+print('\n\nNr of items in unique training keys RDD: %d \n\n' % (uniqueTrainKeysRDD.count()))
 #print(uniqueValKeysRDD.collect())
 
 #uniqueKeysList = uniqueKeysRDD.collect()
@@ -222,13 +224,26 @@ def shortestPaths(node,G,depth):
     #print((node,paths))
     return (node,paths)
 
+def existsInGraph(node,G):
+
+    if node in G.value:
+        return((node,True))
+    else:
+        return((node,False))
+
 print('\n\n\n\n')
 print("#####################################################")
+print("### Run hit statistics on graph #####################")
+
+nrValHits = uniqueValKeysRDD.map(lambda key: existsInGraph(key,G)).filter(lambda v: v[1] == True).count()
+nrTrainHits = uniqueTrainKeysRDD.map(lambda key: existsInGraph(key,G)).filter(lambda v: v[1] == True).count()
+
+print('\n\nNr of validation keys in graph: %d' % (nrValHits))
+print('\n\nNr of training keys in graph: %d' % (nrTrainHits))
 
 #
 nrSteps = 4
 spRDD = uniqueValKeysRDD.map(lambda key: shortestPaths(key,G,nrSteps))
-
 
 print('\n\nNr of items in shortest paths RDD: %d \n\n' % (spRDD.count()))
 print('\n\nNr of NON-empty items in shortest paths RDD: %d \n\n' % (spRDD.filter(lambda v: v[1] != None).count()))
