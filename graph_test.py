@@ -145,7 +145,7 @@ def extractKey(line):
 
 uniqueValKeysRDD = valRDD.flatMap(lambda line: extractKey(line)).distinct()
 print('\n\nNr of items in unique validation keys RDD: %d \n\n' % (uniqueValKeysRDD.count()))
-print(uniqueValKeysRDD.collect())
+#print(uniqueValKeysRDD.collect())
 
 #uniqueKeysList = uniqueKeysRDD.collect()
 
@@ -226,17 +226,20 @@ print('\n\n\n\n')
 print("#####################################################")
 
 #
-nrSteps = 2
+nrSteps = 4
 spRDD = uniqueValKeysRDD.map(lambda key: shortestPaths(key,G,nrSteps))
 
 
 print('\n\nNr of items in shortest paths RDD: %d \n\n' % (spRDD.count()))
+print('\n\nNr of NON-empty items in shortest paths RDD: %d \n\n' % (spRDD.filter(lambda v: v[1] != None).count()))
+
+    
 
 spDict = spRDD.collectAsMap()
-paths = sc.broadcast(spDict)
+simDict = sc.broadcast(spDict)
 # Access: paths.value[itemID] -> sim
 #drop broadcast?
-
+G.destroy() #No more need for the graph, everything is extracted as similarities
 
 
 
