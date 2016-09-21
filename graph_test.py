@@ -92,8 +92,8 @@ G = sc.broadcast(graph)
 #Use: G.value to access graph
 
 #print(graph.edges(data='distance'))
-print('Nr of edges: %d' % (len(graph.edges())))
-print('Nr of nodes: %d' % (len(graph.nodes())))
+print('\n\n\n\nNr of edges: %d' % (len(graph.edges())))
+print('\n\n\n\nNr of nodes: %d' % (len(graph.nodes())))
 
 #def all_pairs_dijkstra_path(G, cutoff=None, weight='weight'):
 #   """ Compute shortest paths between all nodes in a weighted graph.
@@ -140,14 +140,16 @@ def extractKey(line):
     if len(split) < 2 :
         return []
     else: 
-        return ((split[0]),None)
+        return [(int(split[0]),None)]
 
 
-uniqueTrainKeysRDD = trainRDD.flatMap(lambda line: extractKey(line)).distinct()
-uniqueValKeysRDD = valRDD.flatMap(lambda line: extractKey(line)).distinct()
+uniqueTrainKeysRDD = trainRDD.flatMap(lambda line: extractKey(line)).distinct().map(lambda v: v[0])
+uniqueValKeysRDD = valRDD.flatMap(lambda line: extractKey(line)).distinct().map(lambda v: v[0])
 print('\n\nNr of items in unique validation keys RDD: %d \n\n' % (uniqueValKeysRDD.count()))
 print('\n\nNr of items in unique training keys RDD: %d \n\n' % (uniqueTrainKeysRDD.count()))
 #print(uniqueValKeysRDD.collect())
+
+print(uniqueValKeysRDD.collect())
 
 #uniqueKeysList = uniqueKeysRDD.collect()
 
