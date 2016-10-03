@@ -79,19 +79,19 @@ log.write('reduced to (item,count) counted, nr unique items is: %d \ntime elapse
 
 #RUN Distribution counts
 
-filterRDD_1 = reducedRDD.filter(lambda v: v[1] >= 1 and v[1] < 100)
+filterRDD_1 = reducedRDD.filter(lambda v: v[1] >= 500 and v[1] < 600)
 filterCount = filterRDD_1.count()
 temp_time=time.time()-start_time
 log.write('filtered rdd nr 1 counted, count is: %d, equaling %d percent \ntime elapsed is: %d seconds == %d minutes \n\n' % (filterCount,(filterCount*100)/reducedCount,temp_time,temp_time/60))
 
 
-filterRDD_2 = reducedRDD.filter(lambda v: v[1] > 300 and v[1] < 400)
+filterRDD_2 = reducedRDD.filter(lambda v: v[1] > 600 and v[1] < 700)
 filterCount_2 = filterRDD_2.count()
 temp_time=time.time()-start_time
 log.write('filtered rdd nr 2 counted, count is: %d, equaling %d percent \ntime elapsed is: %d seconds == %d minutes \n\n' % (filterCount_2,(filterCount_2*100)/reducedCount,temp_time,temp_time/60))
 
 
-filterRDD_3 = reducedRDD.filter(lambda v: v[1] >= 400 and v[1] < 500)
+filterRDD_3 = reducedRDD.filter(lambda v: v[1] >= 700)
 filterCount_3 = filterRDD_3.count()
 temp_time=time.time()-start_time
 log.write('filtered rdd nr 3 counted, count is: %d, equaling %d percent \ntime elapsed is: %d seconds == %d minutes \n\n' % (filterCount_3,(filterCount_3*100)/reducedCount,temp_time,temp_time/60))
