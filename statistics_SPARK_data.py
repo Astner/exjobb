@@ -79,25 +79,25 @@ log.write('reduced to (item,count) counted, nr unique items is: %d \ntime elapse
 
 #RUN Distribution counts
 
-filterRDD_1 = reducedRDD.filter(lambda v: v[1] >= 50)
+filterRDD_1 = reducedRDD.filter(lambda v: v[1] >= 1 and v[1] < 100)
 filterCount = filterRDD_1.count()
 temp_time=time.time()-start_time
 log.write('filtered rdd nr 1 counted, count is: %d, equaling %d percent \ntime elapsed is: %d seconds == %d minutes \n\n' % (filterCount,(filterCount*100)/reducedCount,temp_time,temp_time/60))
 
 
-filterRDD_2 = reducedRDD.filter(lambda v: v[1] > 100 and v[1] < 200)
+filterRDD_2 = reducedRDD.filter(lambda v: v[1] > 300 and v[1] < 400)
 filterCount_2 = filterRDD_2.count()
 temp_time=time.time()-start_time
 log.write('filtered rdd nr 2 counted, count is: %d, equaling %d percent \ntime elapsed is: %d seconds == %d minutes \n\n' % (filterCount_2,(filterCount_2*100)/reducedCount,temp_time,temp_time/60))
 
 
-filterRDD_3 = reducedRDD.filter(lambda v: v[1] >= 200 and v[1] < 300)
+filterRDD_3 = reducedRDD.filter(lambda v: v[1] >= 400 and v[1] < 500)
 filterCount_3 = filterRDD_3.count()
 temp_time=time.time()-start_time
 log.write('filtered rdd nr 3 counted, count is: %d, equaling %d percent \ntime elapsed is: %d seconds == %d minutes \n\n' % (filterCount_3,(filterCount_3*100)/reducedCount,temp_time,temp_time/60))
 
 
-filterRDD_4 = reducedRDD.filter(lambda v: v[1] >= 300)
+filterRDD_4 = reducedRDD.filter(lambda v: v[1] >= 200)
 filterCount_4 = filterRDD_4.count()
 temp_time=time.time()-start_time
 log.write('filtered rdd nr 4 counted, count is: %d, equaling %d percent \ntime elapsed is: %d seconds == %d minutes \n\n' % (filterCount_4,(filterCount_4*100)/reducedCount,temp_time,temp_time/60))
@@ -107,7 +107,8 @@ log.write('filtered rdd nr 4 counted, count is: %d, equaling %d percent \ntime e
 #---------------------------------------------------
 #SAVE a filtered dataset
 rddFolder = outFolder +'/files'
-#filterRDD_2.saveAsTextFile(rddFolder)
+filterRDD_4.saveAsTextFile(rddFolder)
+
 
 
 end_time=time.time()-start_time
