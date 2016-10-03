@@ -24,9 +24,9 @@ fullFile = 'yahoo/data/trainIdx1_SPARK_VERSION.txt'
 
 
 
-inputFile = devFile
-outFolder = 'yahoo/data/statistics/dev'
-#outFolder = 'yahoo/data/statistics/full'
+inputFile = fullFile
+#outFolder = 'yahoo/data/statistics/dev'
+outFolder = 'yahoo/data/statistics/full'
 
 print("#####################################################")
 
@@ -79,25 +79,25 @@ log.write('reduced to (item,count) counted, nr unique items is: %d \ntime elapse
 
 #RUN Distribution counts
 
-filterRDD_1 = reducedRDD.filter(lambda v: v[1] >= 1 and v[1] < 20)
+filterRDD_1 = reducedRDD.filter(lambda v: v[1] >= 50)
 filterCount = filterRDD_1.count()
 temp_time=time.time()-start_time
 log.write('filtered rdd nr 1 counted, count is: %d, equaling %d percent \ntime elapsed is: %d seconds == %d minutes \n\n' % (filterCount,(filterCount*100)/reducedCount,temp_time,temp_time/60))
 
 
-filterRDD_2 = reducedRDD.filter(lambda v: v[1] > 20 and v[1] < 50)
+filterRDD_2 = reducedRDD.filter(lambda v: v[1] > 100 and v[1] < 200)
 filterCount_2 = filterRDD_2.count()
 temp_time=time.time()-start_time
 log.write('filtered rdd nr 2 counted, count is: %d, equaling %d percent \ntime elapsed is: %d seconds == %d minutes \n\n' % (filterCount_2,(filterCount_2*100)/reducedCount,temp_time,temp_time/60))
 
 
-filterRDD_3 = reducedRDD.filter(lambda v: v[1] >= 50 and v[1] < 100)
+filterRDD_3 = reducedRDD.filter(lambda v: v[1] >= 200 and v[1] < 300)
 filterCount_3 = filterRDD_3.count()
 temp_time=time.time()-start_time
 log.write('filtered rdd nr 3 counted, count is: %d, equaling %d percent \ntime elapsed is: %d seconds == %d minutes \n\n' % (filterCount_3,(filterCount_3*100)/reducedCount,temp_time,temp_time/60))
 
 
-filterRDD_4 = reducedRDD.filter(lambda v: v[1] >= 100)
+filterRDD_4 = reducedRDD.filter(lambda v: v[1] >= 300)
 filterCount_4 = filterRDD_4.count()
 temp_time=time.time()-start_time
 log.write('filtered rdd nr 4 counted, count is: %d, equaling %d percent \ntime elapsed is: %d seconds == %d minutes \n\n' % (filterCount_4,(filterCount_4*100)/reducedCount,temp_time,temp_time/60))
