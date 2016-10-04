@@ -19,14 +19,16 @@ fullValFile = 'yahoo/data/validationIdx1_SPARK_VERSION.txt'
 val_1k = 'yahoo/data/temp/dev_1k_users/validationIdx1_SPARK_VERSION.txt'
 
 ##############################################
-inputFile = fullFile
+inputFile = devFile
 valFile = val_1k
 #outFolder = 'yahoo/data/ngram/dev'
 
 
-minItemOccurence = 400
-minUserHistory = 100
+minItemOccurence = 2
+minUserHistory = 3
 
+#minItemOcc = sc.broadcast(minItemOccurence)
+#minUserHist = sc.broadcast(minUserHistory)
 
 print("#####################################################")
 
@@ -68,8 +70,10 @@ frequentItems = frequentItemRDD.collectAsMap()
 
 itemDict = sc.broadcast(frequentItems)
 
+nrFreqItems = frequentItemRDD.count()
+print('\n\n\n\nNr of frequent items: %d' % (nrFreqItems))
 
-print('\n\n\n\nNr of frequent items: %d' % (frequentItemRDD.count()))
+
 
 print("\n\n#####################################################")
 print("### Frequent items list created: ####################")
@@ -87,7 +91,7 @@ def filterHistoryLength(userHistory,minCount):
 
 	length = sum(1 for _ in history)
 	if length >= minCount:
-		return userHistory
+		return([(userHistory)])
 	else:
 		return []
 
@@ -96,19 +100,27 @@ print('### Do user history calculations: ###################')
 
 
 ratingRDD = ratingFile.map(lambda line: splitAndRearange(line))
-print('\n\n\nNr items in ratingRDD: %d' % (ratingRDD.count()))
+nrRatings = ratingRDD.count()
+print('\n\n\nNr items in ratingRDD: %d' % (nrRatings))
 
 frequentEventsRDD = ratingRDD.filter(lambda line: line[1][0] in itemDict.value)
-print('\n\n\nNr of requent events: : %d' % (frequentEventsRDD.count()))
+nrfreqEvents = frequentEventsRDD.count()
+print('\n\n\nNr of frequent events: : %d' % (nrfreqEvents))
 
 userFrequentHistoryRDD = frequentEventsRDD.groupByKey()
-print('\n\nNr of users after group by Key: %d' % (userFrequentHistoryRDD.count()))
+nrSmallFreqHist = userFrequentHistoryRDD.count()
+print('\n\nNr of users after group by Key: %d' % (nrSmallFreqHist))
 
 
 userLargeFrequentHistoryRDD = userFrequentHistoryRDD.flatMap(lambda user:filterHistoryLength(user,minUserHistory))
 
 
-print('\n\nNr of users with large frequent histories: %d' % (userLargeFrequentHistoryRDD.count()))
+nrLargeHistories = userLargeFrequentHistoryRDD.count()
+print('\n\nNr of users with large frequent histories: %d' % (nrLargeHistories))
+
+
+#for item in userLargeFrequentHistoryRDD.collect():
+#	print(item)
 
 
 
@@ -121,6 +133,32 @@ frequentValEventsRDD = validationRDD.map(lambda line: splitAndRearange(line))\
 									.filter(lambda line: line[1][0] in itemDict.value)
 
 
+for item in userLargeFrequentHistoryRDD.collect():
+	print(item)
+print("#####################################################")
+print("#####################################################")
+
+for item in frequentValEventsRDD.collect():
+	print(item)
+
+
+usefulUserDataRDD = frequentValEventsRDD.join(userLargeFrequentHistoryRDD)
+
+nrJoined = validationRDD.count()
+print('\n\nNr items in joined RDD: %d' % (nrJoined))
+
+
+
+print('\n\nNr of frequent items: %d' % (nrFreqItems))
+
+print('\n\nNr items in ratingRDD: %d' % (nrRatings))
+print('Nr of frequent events: : %d' % (nrfreqEvents))
+
+print('\n\nNr of users with small frequent histories: %d' % (nrSmallFreqHist))
+
+print('Nr of users with large frequent histories: %d' % (nrLargeHistories))
+
+print('\n\nNr items in joined RDD: %d' % (nrJoined))
 
 
 #oneHistory = userHistoryRDD.collect()[0][1] 
