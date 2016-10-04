@@ -19,13 +19,14 @@ fullValFile = 'yahoo/data/validationIdx1_SPARK_VERSION.txt'
 val_1k = 'yahoo/data/temp/dev_1k_users/validationIdx1_SPARK_VERSION.txt'
 
 ##############################################
-inputFile = devFile
+inputFile = fullFile
 valFile = val_1k
 #outFolder = 'yahoo/data/ngram/dev'
 
 
-minItemOccurence = 2
-minUserHistory = 3
+minItemOccurence = 400
+minUserHistory = 100
+
 
 print("#####################################################")
 
@@ -95,10 +96,12 @@ print('### Do user history calculations: ###################')
 
 
 ratingRDD = ratingFile.map(lambda line: splitAndRearange(line))
+print('\n\n\nNr items in ratingRDD: %d' % (ratingRDD.count()))
 
-freqentEventsRDD = ratingRDD.filter(lambda line: line[1][0] in itemDict.value)
+frequentEventsRDD = ratingRDD.filter(lambda line: line[1][0] in itemDict.value)
+print('\n\n\nNr of requent events: : %d' % (frequentEventsRDD.count()))
 
-userFrequentHistoryRDD = freqentEventsRDD.groupByKey()
+userFrequentHistoryRDD = frequentEventsRDD.groupByKey()
 print('\n\nNr of users after group by Key: %d' % (userFrequentHistoryRDD.count()))
 
 
@@ -114,7 +117,9 @@ print('### Do validation data checks: ######################')
 
 validationRDD = sc.textFile(valFile)
 
-frequentValEventsRDD = validationRDD.map(lambda line: splitAndRearange(line))
+frequentValEventsRDD = validationRDD.map(lambda line: splitAndRearange(line))\
+									.filter(lambda line: line[1][0] in itemDict.value)
+
 
 
 
