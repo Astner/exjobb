@@ -8,12 +8,19 @@ sc = SparkContext()
 
 
 devFile = 'yahoo/data/temp/testDataset_3_users_SPARK_VERSION.txt'
-dev_10k = 'yahoo/data/temp/artistDataset_10k_users_SPARK_VERSION.txt'
-dev_100k = 'yahoo/data/temp/artistDataset_100k_users_SPARK_VERSION.txt'
+dev_1k = 'yahoo/data/temp/dev_1k_users/trainIdx1_SPARK_VERSION.txt'
+#dev_100k = 'yahoo/data/temp/artistDataset_100k_users_SPARK_VERSION.txt'
 fullFile = 'yahoo/data/trainIdx1_SPARK_VERSION.txt'
 
+#valFile = 'yahoo/data/temp/dev_100k_users/validationIdx1_SPARK_VERSION.txt'
 
+
+fullValFile = 'yahoo/data/validationIdx1_SPARK_VERSION.txt'
+val_1k = 'yahoo/data/temp/dev_1k_users/validationIdx1_SPARK_VERSION.txt'
+
+##############################################
 inputFile = devFile
+valFile = val_1k
 #outFolder = 'yahoo/data/ngram/dev'
 
 
@@ -60,7 +67,8 @@ frequentItems = frequentItemRDD.collectAsMap()
 
 itemDict = sc.broadcast(frequentItems)
 
-print(frequentItems)
+
+print('\n\n\n\nNr of frequent items: %d' % (frequentItemRDD.count()))
 
 print("\n\n#####################################################")
 print("### Frequent items list created: ####################")
@@ -83,6 +91,7 @@ def filterHistoryLength(userHistory,minCount):
 		return []
 
 print("#####################################################")
+print('### Do user history calculations: ###################')
 
 
 ratingRDD = ratingFile.map(lambda line: splitAndRearange(line))
@@ -90,6 +99,8 @@ ratingRDD = ratingFile.map(lambda line: splitAndRearange(line))
 freqentEventsRDD = ratingRDD.filter(lambda line: line[1][0] in itemDict.value)
 
 userFrequentHistoryRDD = freqentEventsRDD.groupByKey()
+print('\n\nNr of users after group by Key: %d' % (userFrequentHistoryRDD.count()))
+
 
 userLargeFrequentHistoryRDD = userFrequentHistoryRDD.flatMap(lambda user:filterHistoryLength(user,minUserHistory))
 
@@ -97,6 +108,13 @@ userLargeFrequentHistoryRDD = userFrequentHistoryRDD.flatMap(lambda user:filterH
 print('\n\nNr of users with large frequent histories: %d' % (userLargeFrequentHistoryRDD.count()))
 
 
+
+print("#####################################################")
+print('### Do validation data checks: ######################')
+
+validationRDD = sc.textFile(valFile)
+
+frequentValEventsRDD = validationRDD.map(lambda line: splitAndRearange(line))
 
 
 
