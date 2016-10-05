@@ -231,6 +231,8 @@ denseTrainEventsRDD = ratingFile.map(lambda line: splitAndRearange(line))\
 								.map(lambda line: rearangeAndMerge(line))
 
 
+nrDenseValEvents = denseValEventsRDD.count()
+nrDenseTrainEvents = denseTrainEventsRDD.count()
 
 denseValEventsRDD.saveAsTextFile(outFolder +'/validation')
 denseTrainEventsRDD.saveAsTextFile(outFolder +'/training')
@@ -238,6 +240,8 @@ denseTrainEventsRDD.saveAsTextFile(outFolder +'/training')
 
 #print(denseTrainEventsRDD.collect())
 
+print('\n\nNr training items in dense: %d' % (nrDenseTrainEvents))
+print('Nr validation items in dense: %d' % (nrDenseValEvents))
 
 
 print("#####################################################")
@@ -260,6 +264,8 @@ print('Nr frequent validation items: %d' % (nrFreqValItems))
 print('\n\nNr of useful users in union RDD: %d' % (nrJoined))
 
 
+print('\n\nNr training items in dense: %d' % (nrDenseTrainEvents))
+print('Nr validation items in dense: %d' % (nrDenseValEvents))
 
 
 
