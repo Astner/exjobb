@@ -196,26 +196,6 @@ usefulUsers = usefulUsersRDD.collectAsMap()
 userDict = sc.broadcast(usefulUsers)
 
 
-print("#####################################################")
-print("#####################################################")
-
-
-print('\n\nNr of frequent items: %d' % (nrFreqItems))
-
-print('\n\nNr items in ratingRDD: %d' % (nrRatings))
-print('Nr of frequent events: : %d' % (nrfreqEvents))
-
-print('\n\nNr of users with small frequent histories: %d' % (nrSmallFreqHist))
-
-print('Nr of users with large frequent histories: %d' % (nrLargeHistories))
-
-print('\n\nNr frequent validation events: %d' % (nrFreqValEvents))
-print('Nr frequent validation items: %d' % (nrFreqValItems))
-
-
-print('\n\nNr of useful users in union RDD: %d' % (nrJoined))
-
-
 
 print("#####################################################")
 # Turn usefulUsers + frequent items into a new dataset to use
@@ -237,8 +217,6 @@ def rearangeAndMerge(line):
 	line[1].append(line[0])
 	return('\t'.join(line[1]))
 
-#validationRDD = sc.textFile(valFile)
-
 #print(validationRDD.map(lambda line: splitAndRearange(line)).collect())
 
 
@@ -258,7 +236,28 @@ denseValEventsRDD.saveAsTextFile(outFolder +'/validation')
 denseTrainEventsRDD.saveAsTextFile(outFolder +'/training')
 
 
-print(denseTrainEventsRDD.collect())
+#print(denseTrainEventsRDD.collect())
+
+
+
+print("#####################################################")
+print("#####################################################")
+
+
+print('\n\nNr of frequent items: %d' % (nrFreqItems))
+
+print('\n\nNr items in ratingRDD: %d' % (nrRatings))
+print('Nr of frequent events: : %d' % (nrfreqEvents))
+
+print('\n\nNr of users with small frequent histories: %d' % (nrSmallFreqHist))
+
+print('Nr of users with large frequent histories: %d' % (nrLargeHistories))
+
+print('\n\nNr frequent validation events: %d' % (nrFreqValEvents))
+print('Nr frequent validation items: %d' % (nrFreqValItems))
+
+
+print('\n\nNr of useful users in union RDD: %d' % (nrJoined))
 
 
 
