@@ -3,6 +3,7 @@
 
 from pyspark import SparkContext
 import os,time
+import shutil
 
 sc = SparkContext()
 
@@ -15,13 +16,13 @@ fullFile = 'yahoo/data/trainIdx1_SPARK_VERSION.txt'
 #valFile = 'yahoo/data/temp/dev_100k_users/validationIdx1_SPARK_VERSION.txt'
 
 
-fullValFile = 'yahoo/data/validationIdx1_SPARK_VERSION.txt'
+val_full = 'yahoo/data/validationIdx1_SPARK_VERSION.txt'
 val_1k = 'yahoo/data/temp/dev_1k_users/validationIdx1_SPARK_VERSION.txt'
 
 ##############################################
 inputFile = fullFile
-valFile = fullValFile
-#outFolder = 'yahoo/data/ngram/dev'
+valFile = val_full
+outFolder = 'yahoo/data/temp/subsets/dense'
 
 
 minItemOccurence = 1200
@@ -41,9 +42,12 @@ def extractTrackID(line):
 
 print("#####################################################")
 
-#if os.path.isdir(outFolder):
-#	shutil.rmtree(outFolder)
-#os.mkdir(outFolder) 
+#Make sure outFolder is an empty folder
+if os.path.isdir(outFolder):
+	shutil.rmtree(outFolder)
+os.mkdir(outFolder) 
+
+
 
 #logFile = outFolder + '/LOG_FILE' 
 #log = open(logFile,'a')
@@ -82,7 +86,7 @@ print("### Filter-out infrequent events: ###################")
 
 def splitAndRearange(line):
 	split = line.split('\t')
-	return (split[4],[split[0],split[1],split[2]])
+	return (split[4],[split[0],split[1],split[2],split[3]])
 
 
 def filterHistoryLength(userHistory,minCount):
@@ -131,12 +135,23 @@ validationRDD = sc.textFile(valFile)
 
 frequentValEventsRDD = validationRDD.map(lambda line: splitAndRearange(line))\
 									.filter(lambda line: line[1][0] in itemDict.value)\
-									.map(lambda line: (line[0],1))
 #Frequent users in form: (userID,1)
 
 
 nrFreqValEvents = frequentValEventsRDD.count()
 print('\n\nNr frequent validation events: %d' % (nrFreqValEvents))
+
+
+frequentValItemsRDD = frequentValEventsRDD.map(lambda line: (line[0],1)).distinct()
+
+nrFreqValItems = frequentValItemsRDD.count()
+print('\n\nNr frequent validation items: %d' % (nrFreqValItems))
+
+
+
+#.reduceByKey(lambda a,b: 1)
+#									.map(lambda line: (line[0],1))
+
 
 #for item in userLargeFrequentHistoryRDD.collect():
 #	print(item)
@@ -150,7 +165,7 @@ print('\n\nNr frequent validation events: %d' % (nrFreqValEvents))
 #usefulUserDataRDD = frequentValEventsRDD.groupWith(userLargeFrequentHistoryRDD)
 
 
-usefulUsersRDD = frequentValEventsRDD.union(userLargeFrequentHistoryRDD)\
+usefulUsersRDD = frequentValItemsRDD.union(userLargeFrequentHistoryRDD)\
 									 .reduceByKey(lambda a,b : a + b)\
 									 .filter(lambda line: line[1] >= 2)			
 
@@ -172,10 +187,17 @@ nrJoined = usefulUsersRDD.count()
 print('\n\nNr of useful users in joined RDD: %d' % (nrJoined))
 
 
+usefulUsers = usefulUsersRDD.collectAsMap()
+#.map(lambda line: line[0])
+
+#print(usefulUsers)
+
+#itemDict = sc.broadcast(frequentItems)
+userDict = sc.broadcast(usefulUsers)
+
 
 print("#####################################################")
 print("#####################################################")
-
 
 
 print('\n\nNr of frequent items: %d' % (nrFreqItems))
@@ -188,17 +210,61 @@ print('\n\nNr of users with small frequent histories: %d' % (nrSmallFreqHist))
 print('Nr of users with large frequent histories: %d' % (nrLargeHistories))
 
 print('\n\nNr frequent validation events: %d' % (nrFreqValEvents))
+print('Nr frequent validation items: %d' % (nrFreqValItems))
 
 
 print('\n\nNr of useful users in union RDD: %d' % (nrJoined))
 
 
-#print(usefulUsersRDD.map(lambda line: line[0]).collect())
+
 print("#####################################################")
 # Turn usefulUsers + frequent items into a new dataset to use
 # Save dataset to disk, should be able to put into pre-process_SPARK.py right away
 
+# Use itemDict and userDict to filter the original datasets
 
 
+
+#def splitAndRearange(line):
+#	split = line.split('\t')
+#	return (split[4],[split[0],split[1],split[2],split[3]])
+
+
+
+def rearangeAndMerge(line):
+	#outList = list(line[1]).append(line[0])
+	#print(outList)
+	line[1].append(line[0])
+	return('\t'.join(line[1]))
+
+#validationRDD = sc.textFile(valFile)
+
+#print(validationRDD.map(lambda line: splitAndRearange(line)).collect())
+
+
+denseValEventsRDD = validationRDD.map(lambda line: splitAndRearange(line))\
+								  .filter(lambda line: line[1][0] in itemDict.value)\
+								  .filter(lambda line: line[0] in userDict.value)\
+								  .map(lambda line: rearangeAndMerge(line))
+
+denseTrainEventsRDD = ratingFile.map(lambda line: splitAndRearange(line))\
+								.filter(lambda line: line[1][0] in itemDict.value)\
+								.filter(lambda line: line[0] in userDict.value)\
+								.map(lambda line: rearangeAndMerge(line))
+
+
+
+denseValEventsRDD.saveAsTextFile(outFolder +'/validation')
+denseTrainEventsRDD.saveAsTextFile(outFolder +'/training')
+
+
+print(denseTrainEventsRDD.collect())
+
+
+
+
+
+print("\n\n#####################################################")
+print("#####################################################")
 
 
