@@ -33,9 +33,14 @@ fullFile = 'yahoo/data/trainIdx1_SPARK_VERSION.txt'
 #dev_all = 'yahoo/data/temp/split_dataset_ALL_users'
 
 
+denseSubset = 'yahoo/data/temp/subsets/dense/training'
+
+
 #inputFolder = dev_100k
-inputFile = devFile
-outFolder = 'yahoo/data/ngram/dev'
+inputFile = denseSubset
+outFolder = 'yahoo/data/ngram/denseSub'
+
+
 
 
 #outFile = 'yahoo/data/ngram/tempNRAM_3_users.txt'
@@ -137,7 +142,7 @@ log.write('output created, count is: %d \ntime elapsed is: %d seconds == %d minu
 
 
 rddFolder = outFolder +'/files'
-#outputRDD.saveAsTextFile(rddFolder)
+outputRDD.saveAsTextFile(rddFolder)
 
 
 
