@@ -56,7 +56,7 @@ object GraphsMain {
       version("version") text ("prints version")
 
       opt[Unit]("local") abbr ("lcl") action { (_, c) =>
-        c.copy(local = false)
+        c.copy(local = true)
       } text ("indicate that we are running locally, default false")
 
 

@@ -24,7 +24,7 @@ experimental/higherorder/src/main/scala/se/sics/concepts/\
 \b ContextsMain: [2]
 \b0 \
 \
-run -lcl -if ../../../yahoo/data/ngram/dev_100k/files -op ./data_100k_mcc3 -f ngrams -uq true -mcc 7\
+run -lcl -if ../../../yahoo/data/ngram/denseSub/files -op ./data_denseSubset -f ngrams -uq true -mcc 7\
 \
 \
 \
@@ -37,7 +37,7 @@ run -lcl -if ../../../yahoo/data/ngram/dev_100k/files -op ./data_100k_mcc3 -f ng
 \b0 \
 \
 \pard\pardeftab720\partightenfactor0
-\cf0 run graphs --local -p ./data_100k_mcc3 -cf pwmi -ca all -mcc 7 -md 100 -mcr 0.1 -msm 0.1 -mc 7\
+\cf0 run graphs --local -p ./data_denseSubset -cf pwmi -ca all -mcc 7 -md 300 -mcr 0.1 -msm 0.1 -mc 7\
 \
 \
 \
