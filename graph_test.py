@@ -27,6 +27,7 @@ testFile = 'yahoo/data/temp/dev_10_users/testIdx1_SPARK_VERSION.txt'
 #valFile = 'yahoo/data/temp/dev_100k_users/validationIdx1_SPARK_VERSION.txt'
 
 
+
 print("#####################################################")
 
 def indexToTrackID(index,nodes):
@@ -149,7 +150,7 @@ print('\n\nNr of items in unique validation keys RDD: %d \n\n' % (uniqueValKeysR
 print('\n\nNr of items in unique training keys RDD: %d \n\n' % (uniqueTrainKeysRDD.count()))
 #print(uniqueValKeysRDD.collect())
 
-print(uniqueValKeysRDD.collect())
+#print(uniqueValKeysRDD.collect())
 
 #uniqueKeysList = uniqueKeysRDD.collect()
 
@@ -244,7 +245,7 @@ print('\n\nNr of validation keys in graph: %d' % (nrValHits))
 print('\n\nNr of training keys in graph: %d' % (nrTrainHits))
 
 #
-nrSteps = 4
+nrSteps = 6
 spRDD = uniqueValKeysRDD.map(lambda key: shortestPaths(key,G,nrSteps))
 
 print('\n\nNr of items in shortest paths RDD: %d \n\n' % (spRDD.count()))
@@ -252,9 +253,11 @@ print('\n\nNr of NON-empty items in shortest paths RDD: %d \n\n' % (spRDD.filter
 
     
 
+
 spDict = spRDD.collectAsMap()
 simDict = sc.broadcast(spDict)
 # Access: paths.value[itemID] -> sim
+
 #drop broadcast?
 G.destroy() #No more need for the graph, everything is extracted as similarities
 
@@ -271,10 +274,81 @@ usersRDD = trainUserRDD.union(valUserRDD).groupByKey()
 
 
 print('\n\nNr of items in userRDD: %d \n\n' % (usersRDD.count()))
+
+#users = usersRDD.collect()
+
+#for user in users:
+#    print('\n\n\n User: %s' % (user[0]))
+#    for item in user[1]:
+#        print(item)
+
+print('\n\n\n\n')
+print("#####################################################")
+
+
+
+
+#def 
+
+def usersToSimilarities(userData,similarities):
+    userID = userData[0]
+    itemList = userData[1]
+    history = []
+    targets = []
+
+    for item in itemList:
+        if item[2] == 'history':
+            history.append((item[0],item[1]))
+        elif item[2] == 'validation': 
+            targets.append((item[0],item[1]))
+
+    output = []
+
+    for target in targets: 
+        #access similarities from target to all in history
+        #i = 0
+        tID = target[0]
+        tValue = target[1]
+
+        if tID in similarities.value:
+            simValues = []
+            #Traget has found shortest paths
+            for item in history:
+                itemID = item[0]
+                itemValue = item[1]
+                if itemID in similarities.value[target]: #Else: no path exists, do nothing 
+                    sim = similarities.value[tID][itemID]
+                    
+                    simValues.append((sim,itemValue))
+
+            output.append((tValue,simValues))
+        else:
+            #TODO: DO SOMETHING SMART
+            # USE HIERARCHICAL INFORMATION  
+            output.append((None,target))
+            #TEMP: DO NOTHING
+
+    return output
+
+print("#####################################################")
+print("### Turn histories to similarities ##################")
+
 #k,v = usersRDD.collect()[0]
 #
 #for item in v:
 #	print(item)
+
+predictRDD = usersRDD.flatMap(lambda user:usersToSimilarities(user,simDict))
+
+missesRDD = predictRDD.filter(lambda v: v[0] == None)
+hitsRDD = predictRDD.filter(lambda v: v[0] != None)
+
+
+print('\n\nNr of items in missesRDD: %d \n\n' % (missesRDD.count()))
+print('\n\nNr of items in hitsRDD: %d \n\n' % (hitsRDD.count()))
+
+
+print('')
 
 
 #def has_path(G, source, target):

@@ -8,13 +8,14 @@
 {\*\listtable{\list\listtemplateid1\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid1\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid1}
 {\list\listtemplateid2\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid101\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid2}}
 {\*\listoverridetable{\listoverride\listid1\listoverridecount0\ls1}{\listoverride\listid2\listoverridecount0\ls2}}
-\paperw11900\paperh16840\margl1440\margr1440\vieww31360\viewh18680\viewkind0
+\paperw11900\paperh16840\margl1440\margr1440\vieww17640\viewh18680\viewkind0
 \pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
 
 \f0\fs24 \cf0 Acc\'e8s server:\
 ssh -p 8203 astner@109.225.89.18\
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
 
-\b \
+\b \cf0 \
 \
 installing on ICE server:
 \b0 \
@@ -116,8 +117,7 @@ sudo
 \f0\b0 \cf0 \cb1 \kerning1\expnd0\expndtw0 \
 \pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
 \cf0 \
-\
-\
+ \
  spark.master    local[8]\
 \
 \
@@ -134,5 +134,21 @@ sudo
 \{"Event":"SparkListenerTaskEnd","Stage ID":5,"Stage Attempt ID":0,"Task Type":"ShuffleMapTask","Task End Reason":\{"Reason":"TaskKilled"\},"Task Info":\{"Task ID":892,"Index":202,"Attempt":0,"Launch Time":1473533098475,"Executor ID$\
 \{"Event":"SparkListenerTaskEnd","Stage ID":5,"Stage Attempt ID":0,"Task Type":"ShuffleMapTask","Task End Reason":\{"Reason":"TaskKilled"\},"Task Info":\{"Task ID":895,"Index":205,"Attempt":0,"Launch Time":1473534138852,"Executor ID$\
 \{"Event":"SparkListenerApplicationEnd","Timestamp":1473534183082\}\
+\
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+
+\f0 \cf0 \cb1 \CocoaLigature1 \
+\
+\
+Installing sbt according to instructions from olof (in mail)\
+\
+\
+\'97\'97\'97\'97\'97\'97\'97\'97\'97\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f4 \cf8 \cb0 \CocoaLigature0 : org.apache.spark.SparkException: Job aborted due to stage failure: Total size of serialized results of 47 tasks (1044.7 MB) is bigger than spark.driver.maxResultSize (1024.0 MB)
+\f0 \cf0 \cb1 \CocoaLigature1 \
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+\cf0 \
 \
 }
