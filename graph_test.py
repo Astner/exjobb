@@ -16,7 +16,7 @@ sc = SparkContext()
 #file = 'yahoo/data/10k_artists_similarities_v1.json'
 localJson = 'yahoo/data/10k_artists_similarities.json'
 #iceJson = 'concepts-spark20-refactor/experimental/higherorder/data_100k_mcc3/similarities.json'
-denseJson = 'concepts-spark20-refactor/experimental/higherorder/data_denseSubset'
+denseJson = 'concepts-spark20-refactor/experimental/higherorder/data_denseSubset/similarities.json'
 
 jsonFile = denseJson
 
@@ -25,10 +25,17 @@ jsonFile = denseJson
 #valFile = 'yahoo/data/temp/dev_10_users/validationIdx1_SPARK_VERSION.txt'
 #testFile = 'yahoo/data/temp/dev_10_users/testIdx1_SPARK_VERSION.txt'
 
-trainFile = 'yahoo/data/temp/dev_100k_users/trainIdx1_SPARK_VERSION.txt'
-valFile = 'yahoo/data/temp/dev_100k_users/validationIdx1_SPARK_VERSION.txt'
+#trainFile = 'yahoo/data/temp/dev_100k_users/trainIdx1_SPARK_VERSION.txt'
+#valFile = 'yahoo/data/temp/dev_100k_users/validationIdx1_SPARK_VERSION.txt'
 
-nrSteps = 2 #max nr steps on graph to find similarity paths
+#trainFile = 'yahoo/data/trainIdx1_SPARK_VERSION.txt'
+#valFile = 'yahoo/data/validationIdx1_SPARK_VERSION.txt'
+
+trainFile = 'yahoo/data/temp/subsets/dense/training'
+valFile = 'yahoo/data/temp/subsets/dense/validation'
+
+
+nrSteps = 4 #max nr steps on graph to find similarity paths
 
 
 print("#####################################################")
@@ -504,7 +511,7 @@ print('Nr of prediction hits: %d \n\n' % (nrHits))
 print('\n\nThe RMSE of validation data is: %.5f' % (rmse))
 
 
-print(predictionsRDD.collect())
+#print(predictionsRDD.collect())
 
 
 # - Do ML algorithm
