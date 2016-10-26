@@ -28,10 +28,12 @@ fullFile2 = '/extra/data/astner/exjobb/yahoo/data/trainIdx1_SPARK_VERSION.txt'
 localOut = 'yahoo/data/ngram/fullFile/tightBounds'
 extraOut = 'file:///extra/data/astner/exjobb/yahoo/data/ngram/fullFile/tightBounds'
 
+hdfsOut = 'hdfs://sprk1:9000/user/sprk/astner/fullFile'
+
 ################################################################
 ################################################################
 inputFile = fullFile2
-outFolder = extraOut
+outFolder = hdfsOut
 #/extra/data/astner/...
 
 
@@ -79,10 +81,10 @@ print("#####################################################")
 #tempRDD = tabMapped.map(lambda line: (line[4],[line[0],line[1],line[2]]))
 
 #Make sure main folder is empty and existing
-if os.path.isdir(outFolder):
-	#os.rmdir(outFolder)
-	shutil.rmtree(outFolder)
-os.mkdir(outFolder) 
+#if os.path.isdir(outFolder):
+#	#os.rmdir(outFolder)
+#	shutil.rmtree(outFolder)
+#os.mkdir(outFolder) 
 
 logFile = outFolder + '/LOG_FILE' 
 log = open(logFile,'a')
