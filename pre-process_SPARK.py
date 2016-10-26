@@ -31,7 +31,7 @@ extraOut = '/extra/data/astner/exjobb/yahoo/data/ngram/fullFile/tightBounds'
 ################################################################
 ################################################################
 inputFile = fullFile2
-outFolder = localOut
+outFolder = extraOut
 #/extra/data/astner/...
 
 
