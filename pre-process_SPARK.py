@@ -25,10 +25,13 @@ fullFile2 = '/extra/data/astner/exjobb/yahoo/data/trainIdx1_SPARK_VERSION.txt'
 
 #denseSubset = 'yahoo/data/temp/subsets/dense/training'
 
+localOut = 'yahoo/data/ngram/fullFile/tightBounds'
+extraOut = '/extra/data/astner/exjobb/yahoo/data/ngram/fullFile/tightBounds'
+
 ################################################################
 ################################################################
-inputFile = fullFile
-outFolder = '/extra/data/astner/exjobb/yahoo/data/ngram/fullFile/tightBounds'
+inputFile = fullFile2
+outFolder = localOut
 #/extra/data/astner/...
 
 
@@ -76,10 +79,10 @@ print("#####################################################")
 #tempRDD = tabMapped.map(lambda line: (line[4],[line[0],line[1],line[2]]))
 
 #Make sure main folder is empty and existing
-if os.path.isdir(outFolder):
-	#os.rmdir(outFolder)
-	shutil.rmtree(outFolder)
-os.mkdir(outFolder) 
+#if os.path.isdir(outFolder):
+#	#os.rmdir(outFolder)
+#	shutil.rmtree(outFolder)
+#os.mkdir(outFolder) 
 
 logFile = outFolder + '/LOG_FILE' 
 log = open(logFile,'a')
@@ -88,6 +91,8 @@ log = open(logFile,'a')
 
 log.write('Initiating on file: ' + inputFile +'\n\n')
 ############################################################################################
+print("#####################################################")
+
 
 ratingFile = sc.textFile(inputFile)
 
