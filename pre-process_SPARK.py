@@ -22,28 +22,16 @@ dev_10k = 'yahoo/data/temp/artistDataset_10k_users_SPARK_VERSION.txt'
 dev_100k = 'yahoo/data/temp/artistDataset_100k_users_SPARK_VERSION.txt'
 fullFile = 'yahoo/data/trainIdx1_SPARK_VERSION.txt'
 
-#TODO: add split versions and paths
-#ratingFile = sc.textFile(devFile)
-
-
-#inputPath = 'yahoo/data/temp'
-#dev_1k = 'yahoo/data/temp/split_dataset_1k_users'
-#dev_10k = 'yahoo/data/temp/split_dataset_10k_users'
-#dev_100k = 'yahoo/data/temp/split_dataset_100k_users'
-#dev_all = 'yahoo/data/temp/split_dataset_ALL_users'
-
-
 denseSubset = 'yahoo/data/temp/subsets/dense/training'
 
+################################################################
+################################################################
+inputFile = fullFile
+outFolder = 'yahoo/data/ngram/fullFile'
+#/extra/data/astner/...
 
-#inputFolder = dev_100k
-inputFile = denseSubset
-outFolder = 'yahoo/data/ngram/denseSub'
 
 
-
-
-#outFile = 'yahoo/data/ngram/tempNRAM_3_users.txt'
 
 print("#####################################################")
 #print('Count on ratingFile: %s ' % (ratingFile.count()))
@@ -99,23 +87,18 @@ log = open(logFile,'a')
 #i = 1
 
 log.write('Initiating on file: ' + inputFile +'\n\n')
-
-#import os
-#List all files in the folder & make sure they end in .txt
-#for file in os.listdir(inputFolder):
-#	if file.endswith(".txt"):
-#		print(file)
+############################################################################################
 
 ratingFile = sc.textFile(inputFile)
 
 userHistoryRDD = ratingFile.map(lambda line: splitAndRearange(line)).groupByKey()
 
 
-userCount = userHistoryRDD.count()
+#userCount = userHistoryRDD.count()
 #print('\n\n\n\n User history created')
-print('\n\n\nCount on userHistory: %d' % (userCount))
-temp_time=time.time()-start_time
-log.write('userHistory counted, count is: %d \ntime elapsed is: %d seconds == %d minutes \n\n' % (userCount,temp_time,temp_time/60))
+#print('\n\n\nCount on userHistory: %d' % (userCount))
+#temp_time=time.time()-start_time
+#log.write('userHistory counted, count is: %d \ntime elapsed is: %d seconds == %d minutes \n\n' % (userCount,temp_time,temp_time/60))
 
 
 
@@ -123,22 +106,18 @@ log.write('userHistory counted, count is: %d \ntime elapsed is: %d seconds == %d
 ngramRDD = userHistoryRDD.flatMap(lambda line: userHistorytoNgram(line))
 
 #print('\n\n\n\n Ngrams created')
-ngramCount = ngramRDD.count()
-print('\n\n\nCount on ngrams: %d' % (ngramCount))
-temp_time=time.time()-start_time
-log.write('ngrams counted,  count is: %d \ntime elapsed is: %d seconds == %d minutes\n\n' % (ngramCount,temp_time,temp_time/60))
+#ngramCount = ngramRDD.count()
+#print('\n\n\nCount on ngrams: %d' % (ngramCount))
+#temp_time=time.time()-start_time
+#log.write('ngrams counted,  count is: %d \ntime elapsed is: %d seconds == %d minutes\n\n' % (ngramCount,temp_time,temp_time/60))
 
 
 outputRDD = ngramRDD.reduceByKey(lambda a,b : a + b).map(lambda line: mapToOutputFormat(line))
 
-outCount = outputRDD.count()
-print('\n\n\nCount on outputs: %d' % (outCount))
-temp_time=time.time()-start_time
-log.write('output created, count is: %d \ntime elapsed is: %d seconds == %d minutes\n\n' % (outCount,temp_time,temp_time/60))
-
-#if os.path.isdir(outFolder):
-	#os.rmdir(outFolder)
-#	shutil.rmtree(outFolder)
+#outCount = outputRDD.count()
+#print('\n\n\nCount on outputs: %d' % (outCount))
+#temp_time=time.time()-start_time
+#log.write('output created, count is: %d \ntime elapsed is: %d seconds == %d minutes\n\n' % (outCount,temp_time,temp_time/60))
 
 
 rddFolder = outFolder +'/files'
