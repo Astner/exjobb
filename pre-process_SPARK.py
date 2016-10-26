@@ -23,6 +23,8 @@ devFile = 'yahoo/data/temp/testDataset_3_users_SPARK_VERSION.txt'
 fullFile = 'yahoo/data/trainIdx1_SPARK_VERSION.txt'
 fullFile2 = '/extra/data/astner/exjobb/yahoo/data/trainIdx1_SPARK_VERSION.txt'
 
+hdfsIn = 'hdfs://sprk1:9000/user/sprk/astner/fullFile/trainIdx1_SPARK_VERSION.txt'
+
 #denseSubset = 'yahoo/data/temp/subsets/dense/training'
 
 localOut = 'yahoo/data/ngram/fullFile/tightBounds'
@@ -32,7 +34,7 @@ hdfsOut = 'hdfs://sprk1:9000/user/sprk/astner/fullFile'
 
 ################################################################
 ################################################################
-inputFile = fullFile2
+inputFile = hdfsIn
 outFolder = hdfsOut
 #/extra/data/astner/...
 
