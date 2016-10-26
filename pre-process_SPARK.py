@@ -21,13 +21,14 @@ devFile = 'yahoo/data/temp/testDataset_3_users_SPARK_VERSION.txt'
 #dev_10k = 'yahoo/data/temp/artistDataset_10k_users_SPARK_VERSION.txt'
 #dev_100k = 'yahoo/data/temp/artistDataset_100k_users_SPARK_VERSION.txt'
 fullFile = 'yahoo/data/trainIdx1_SPARK_VERSION.txt'
+fullFile2 = '/extra/data/astner/exjobb/yahoo/data/trainIdx1_SPARK_VERSION.txt'
 
 #denseSubset = 'yahoo/data/temp/subsets/dense/training'
 
 ################################################################
 ################################################################
 inputFile = fullFile
-outFolder = 'yahoo/data/ngram/fullFile/tightBounds'
+outFolder = '/extra/data/astner/exjobb/yahoo/data/ngram/fullFile/tightBounds'
 #/extra/data/astner/...
 
 
