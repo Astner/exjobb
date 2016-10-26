@@ -26,7 +26,7 @@ fullFile2 = '/extra/data/astner/exjobb/yahoo/data/trainIdx1_SPARK_VERSION.txt'
 #denseSubset = 'yahoo/data/temp/subsets/dense/training'
 
 localOut = 'yahoo/data/ngram/fullFile/tightBounds'
-extraOut = '/extra/data/astner/exjobb/yahoo/data/ngram/fullFile/tightBounds'
+extraOut = 'file:///extra/data/astner/exjobb/yahoo/data/ngram/fullFile/tightBounds'
 
 ################################################################
 ################################################################
@@ -79,10 +79,10 @@ print("#####################################################")
 #tempRDD = tabMapped.map(lambda line: (line[4],[line[0],line[1],line[2]]))
 
 #Make sure main folder is empty and existing
-#if os.path.isdir(outFolder):
-#	#os.rmdir(outFolder)
-#	shutil.rmtree(outFolder)
-#os.mkdir(outFolder) 
+if os.path.isdir(outFolder):
+	#os.rmdir(outFolder)
+	shutil.rmtree(outFolder)
+os.mkdir(outFolder) 
 
 logFile = outFolder + '/LOG_FILE' 
 log = open(logFile,'a')
@@ -124,6 +124,8 @@ outputRDD = ngramRDD.reduceByKey(lambda a,b : a + b).map(lambda line: mapToOutpu
 #temp_time=time.time()-start_time
 #log.write('output created, count is: %d \ntime elapsed is: %d seconds == %d minutes\n\n' % (outCount,temp_time,temp_time/60))
 
+
+print("## saveAsTextFile #####################################")
 
 rddFolder = outFolder +'/files'
 outputRDD.saveAsTextFile(rddFolder)
