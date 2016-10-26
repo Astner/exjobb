@@ -86,12 +86,11 @@ print("#####################################################")
 #	shutil.rmtree(outFolder)
 #os.mkdir(outFolder) 
 
-logFile = outFolder + '/LOG_FILE' 
-log = open(logFile,'a')
 
-#i = 1
-
-log.write('Initiating on file: ' + inputFile +'\n\n')
+# LOGGING
+#logFile = outFolder + '/LOG_FILE' 
+#log = open(logFile,'a')
+#log.write('Initiating on file: ' + inputFile +'\n\n')
 ############################################################################################
 print("#####################################################")
 
@@ -134,11 +133,11 @@ outputRDD.saveAsTextFile(rddFolder)
 
 
 
-end_time=time.time()-start_time
-print('All completed, end time is: %d seconds == %d minutes' %(end_time,end_time/60))
-log.write('All completed, end time is: %d seconds == %d minutes\n\n' %(end_time,end_time/60))
+#end_time=time.time()-start_time
+#print('All completed, end time is: %d seconds == %d minutes' %(end_time,end_time/60))
+#log.write('All completed, end time is: %d seconds == %d minutes\n\n' %(end_time,end_time/60))
 
-log.close()
+#log.close()
 print('\n\n\n\n')
 print("#####################################################")
 print("#####################################################")
