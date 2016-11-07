@@ -13,29 +13,50 @@ import math
 
 sc = SparkContext()
 
+
+
+#######################################################################################################
+#######################################################################################################
+
+nrSteps = 3 #max nr steps on graph to find similarity paths
+kForKNN = 10
+
+similarityFolder = 'yahoo/data/'
+
+#######################################################################################################
+#######################################################################################################
+
+albumFile = '../Webscope_C15/ydata-ymusic-kddcup-2011-track1/albumData1.txt'
+trackFile = '../Webscope_C15/ydata-ymusic-kddcup-2011-track1/trackData1.txt'
+artistFile = '../Webscope_C15/ydata-ymusic-kddcup-2011-track1/artistData1.txt'
+genreFile = '../Webscope_C15/ydata-ymusic-kddcup-2011-track1/genreData1.txt'
+
+#######################################################################################################
+#######################################################################################################
+
 #file = 'yahoo/data/10k_artists_similarities_v1.json'
 localJson = 'yahoo/data/10k_artists_similarities.json'
 #iceJson = 'concepts-spark20-refactor/experimental/higherorder/data_100k_mcc3/similarities.json'
 denseJson = 'concepts-spark20-refactor/experimental/higherorder/data_denseSubset/similarities.json'
+fullJson = '/extra/data/astner/CCMdata/run1/similarities.json'
 
-jsonFile = denseJson
 
+#jsonFile = similarityFolder + 'similarities.json'
+jsonFile = localJson
 
-#trainFile = 'yahoo/data/temp/dev_10_users/trainIdx1_SPARK_VERSION.txt'
-#valFile = 'yahoo/data/temp/dev_10_users/validationIdx1_SPARK_VERSION.txt'
+#######################################################################################################
+#######################################################################################################
+trainFile = 'yahoo/data/temp/dev_10_users/trainIdx1_SPARK_VERSION.txt'
+valFile = 'yahoo/data/temp/dev_10_users/validationIdx1_SPARK_VERSION.txt'
 #testFile = 'yahoo/data/temp/dev_10_users/testIdx1_SPARK_VERSION.txt'
-
-#trainFile = 'yahoo/data/temp/dev_100k_users/trainIdx1_SPARK_VERSION.txt'
-#valFile = 'yahoo/data/temp/dev_100k_users/validationIdx1_SPARK_VERSION.txt'
 
 #trainFile = 'yahoo/data/trainIdx1_SPARK_VERSION.txt'
 #valFile = 'yahoo/data/validationIdx1_SPARK_VERSION.txt'
+#testFile = 'yahoo/data/testIdx1_SPARK_VERSION.txt'
 
-trainFile = 'yahoo/data/temp/subsets/dense/training'
-valFile = 'yahoo/data/temp/subsets/dense/validation'
+#trainFile = 'yahoo/data/temp/subsets/dense/training'
+#valFile = 'yahoo/data/temp/subsets/dense/validation'
 
-
-nrSteps = 4 #max nr steps on graph to find similarity paths
 
 
 print("#####################################################")
@@ -102,38 +123,14 @@ graph = createGraphFromJSON(jsonFile)
 G = sc.broadcast(graph)
 #Use: G.value to access graph
 
-#print(graph.edges(data='distance'))
-
 nrEdges = len(graph.edges())
 nrNodes = len(graph.nodes())
 print('\n\n\n\nNr of edges: %d' % (nrEdges))
 print('\n\n\n\nNr of nodes: %d' % (nrNodes))
 
-#def all_pairs_dijkstra_path(G, cutoff=None, weight='weight'):
-#   """ Compute shortest paths between all nodes in a weighted graph.
-
-#print('\n\n\n\nStarting graph shortest paths: \n\n\n')
-#tart_time = time.time()
-#paths = nx.all_pairs_dijkstra_path(graph,cutoff = 2,weight = 'distance')
-#end_time=time.time()-start_time
-#print('Paths completed, end time is: %d seconds == %d minutes' %(end_time,end_time/60))
-#print('Size of paths object: %d' % (len(paths)))
-#path = [218079, 475789, 458576, 107772, 279203, 263935]
-#for item in path:
-#	print(item in G.value)
-
-#print(G[path[0]])
-#print('\n\n\n')
-#nodeValues = sc.parallelize(path).map(lambda x: graph.value[x])
-#print('\n\n Count on nodeValues: %d \n\n' %(nodeValues.count()))
-#collected = nodeValues.collect()
-#print(collected[0])
 
 
 
-
-
-#Create user objects from input files / 1 predict object for each target item
 
 trainRDD = sc.textFile(trainFile)
 #testRDD = sc.textFile(testFile)
@@ -166,22 +163,15 @@ uniqueValKeysRDD = valRDD.flatMap(lambda line: extractKey(line)).distinct().map(
 
 
 
-nrUniqueValKeys = uniqueValKeysRDD.count()
-nrUniqueTrainKeys = uniqueTrainKeysRDD.count()
-print('\n\nNr of items in unique validation keys RDD: %d \n\n' % (nrUniqueValKeys))
-print('\n\nNr of items in unique training keys RDD: %d \n\n' % (nrUniqueTrainKeys))
-#print(uniqueValKeysRDD.collect())
-
-#print(uniqueValKeysRDD.collect())
-
-#uniqueKeysList = uniqueKeysRDD.collect()
+#nrUniqueValKeys = uniqueValKeysRDD.count()
+#nrUniqueTrainKeys = uniqueTrainKeysRDD.count()
+#print('\n\nNr of items in unique validation keys RDD: %d \n\n' % (nrUniqueValKeys))
+#print('\n\nNr of items in unique training keys RDD: %d \n\n' % (nrUniqueTrainKeys))
 
 
 print('\n\n\n\n')
 print("#####################################################")
-
 #For each unique key, run all paors shortest paths on G
-
 
 def aggregateSimilarities(simList):
     ans = 1    
@@ -212,19 +202,11 @@ def shortestPaths(node,G,depth):
     #"""Compute shortest paths and lengths in a weighted graph G.
 
     if node in G.value:
-        #print('\n\n We got a node')
         paths = nx.single_source_dijkstra_path(G.value,node,cutoff = depth,weight = 'distance') 
+
         #Turn paths to similarities
-
-        #print(paths)
-        #print('\n\n We got a path\n\n\n')
-        #print(paths)
-        #print('\n\nLength of paths = %d' % (len(paths)))
-
         if len(paths) > 0:
-
             for target in paths:
-                #print(target)
                 path = paths[target]
                 similarity = pathToSimilarity(G,path)
                 paths[target] = similarity
@@ -242,15 +224,9 @@ def shortestPaths(node,G,depth):
     # 222849: [218079, 475789, 222849],
     # acess: paths[targetID] -> [source,nodes,target]
 
-    # Turn path to similarity?
-#    return (node,paths)
-
-    #print('\n\n\n')
-    #print((node,paths))
     return((node,paths))
 
 def existsInGraph(node,G):
-
     if node in G.value:
         return((node,True))
     else:
@@ -260,29 +236,17 @@ print('\n\n\n\n')
 print("#####################################################")
 print("### Run hit statistics on graph #####################")
 
-nrValHits = uniqueValKeysRDD.map(lambda key: existsInGraph(key,G)).filter(lambda v: v[1] == True).count()
-nrTrainHits = uniqueTrainKeysRDD.map(lambda key: existsInGraph(key,G)).filter(lambda v: v[1] == True).count()
+#nrValHits = uniqueValKeysRDD.map(lambda key: existsInGraph(key,G)).filter(lambda v: v[1] == True).count()
+#nrTrainHits = uniqueTrainKeysRDD.map(lambda key: existsInGraph(key,G)).filter(lambda v: v[1] == True).count()
 
-print('\n\nNr of validation keys in graph: %d' % (nrValHits))
-print('\n\nNr of training keys in graph: %d' % (nrTrainHits))
+#print('\n\nNr of validation keys in graph: %d' % (nrValHits))
+#print('\n\nNr of training keys in graph: %d' % (nrTrainHits))
 
-#
+
 spRDD = uniqueValKeysRDD.map(lambda key: shortestPaths(key,G,nrSteps))
-
-
-nrShortestPaths = spRDD.count()
-nrExistingShortestPaths = spRDD.filter(lambda v: v[1] != None).count()
-print('\n\nNr of items in shortest paths RDD: %d \n\n' % (nrShortestPaths))
-print('\n\nNr of NON-empty items in shortest paths RDD: %d \n\n' % (nrExistingShortestPaths))
-
     
-
-
 spDict = spRDD.collectAsMap()
 simDict = sc.broadcast(spDict)
-
-#print(simDict)
-# Access: paths.value[itemID] -> sim
 
 #drop broadcast?
 G.destroy() #No more need for the graph, everything is extracted as similarities
@@ -292,33 +256,13 @@ G.destroy() #No more need for the graph, everything is extracted as similarities
 trainUserRDD = trainRDD.flatMap(lambda line: splitAndLabel(line,'history'))
 valUserRDD = valRDD.flatMap(lambda line: splitAndLabel(line,'validation'))
 
-
-
-print('\n\nNr of items in train: %d \n\n' % (trainUserRDD.count()))
-print('\n\nNr of items in validation: %d \n\n' % (valUserRDD.count()))
-
-
 usersRDD = trainUserRDD.union(valUserRDD).groupByKey()
 
-nrUsers = usersRDD.count()
-print('\n\nNr of items in userRDD: %d \n\n' % (nrUsers))
-
-#users = usersRDD.collect()
-
-#for user in users:
-#    print('\n\n\n User: %s' % (user[0]))
-#    for item in user[1]:
-#        print(item)
 
 print('\n\n\n\n')
 print("#####################################################")
 
-
-
-
-#def 
-
-def usersToSimilarities(userData,similarities):
+def separateToEventData(userData):
     userID = userData[0]
     itemList = userData[1]
     history = []
@@ -331,68 +275,83 @@ def usersToSimilarities(userData,similarities):
             targets.append((item[0],item[1]))
 
     output = []
-
-    for target in targets: 
-        #access similarities from target to all in history
-        #i = 0
-        tID = int(target[0])
-        tValue = target[1]
-
-        if tID in similarities.value and similarities.value[tID] != None:
-            simDict = similarities.value[tID]
-            simValues = []
-            #Has found shortest paths target
-            #print(history)
-
-            for item in history:
-                itemID = int(item[0])
-                itemValue = int(item[1])
-                #print(simDict)
-                if itemID in simDict: #Else: no path exists, do nothing 
-                    sim = similarities.value[tID][itemID]
-                    
-                    simValues.append((sim,itemValue))
-
-            if simValues != []:
-                output.append((tValue,simValues))
-            else:
-                output.append((None,target))    
-        else:
-            #target is not in graph or has no connections
-            #TODO: DO SOMETHING SMART
-            #      i.e. USE HIERARCHICAL INFORMATION  
-            output.append((None,target))
-            #TEMP: DO NOTHING 
-
+    for target in targets:
+        output.append((target,history))
     return output
 
+def eventDataToSimilarities(eventData,similarities):
+    #access similarities from target to all in history
+    target = eventData[0]
+    history = eventData[1]
+
+    tID = int(target[0])
+    tValue = target[1]
+    #output = []
+
+    if tID in similarities.value and similarities.value[tID] != None:
+        simDict = similarities.value[tID]
+        simValues = []
+         #Has found shortest paths target
+        for item in history:
+            itemID = int(item[0])
+            itemValue = int(item[1])
+            if itemID in simDict: #Else: no path exists, do nothing 
+                sim = similarities.value[tID][itemID]
+                    
+                simValues.append((sim,itemValue))
+
+        if simValues != []:
+            return((tValue,simValues))
+        else:
+            #No similarities to target was found
+            return((None,eventData))    
+    else:
+        #target is not in graph or has no connections
+        #TODO: DO SOMETHING SMART
+        #      i.e. USE HIERARCHICAL INFORMATION  
+        return((None,eventData))
+    #return output
+
+
+#def increseHierarchy(eventData,hierarchyDict):
+#    target = eventData[0]
+#    history = eventData[1]
+#    if target in hierarchyDict.value:
+#        #target is of files type
+#        #TODO: extrack info for next level
+#        return((hierarchyDict.value[target],history,target))
+#    else:
+#        return ((None,eventData))
+
+
+#Position: track -> album == 1
+#           track -> artist == 2
+#           track to genre == 3,4,5....
+#           album -> artist == 1
+#           album -> genre == 2,3,4....
+def extractPosition(line,position):
+    split = line.split('|')
+    if len(split) >= position+1:
+        return((split[0],split[position]))
+    else:
+        return None
+
+
+#def hierarchicalEventToSim(eventData,similaritiesDict):
+#    value = eventDataToSimilarities(,)
+#    return None
 
 print("#####################################################")
 print("### Turn histories to similarities ##################")
 
-#k,v = usersRDD.collect()[0]
-#
-#for item in v:
-#	print(item)
 
 
-#users = usersRDD.collect()
 
-#for user in users:
-#   id = user[0]
-#    print('\nuserID is: %s' % (id))
-#    history = user[1]
-#    for item in history:    
-#        print(item)
+#predictRDD = usersRDD.flatMap(lambda user:usersToSimilarities(user,simDict))
+predictRDD = usersRDD.flatMap(lambda user: separateToEventData(user))\
+                    .map(lambda event:eventDataToSimilarities(event,simDict))
+                    #.persist(storageLevel=StorageLevel(True, True, False, False, 1))
 
-#print(simDict.value[218079])
-#print('\n\n\n')
-
-
-predictRDD = usersRDD.flatMap(lambda user:usersToSimilarities(user,simDict))
-
-
-#print(predictRDD.collect())
 
 missesRDD = predictRDD.filter(lambda v: v[0] == None)
 hitsRDD = predictRDD.filter(lambda v: v[0] != None)
@@ -403,9 +362,36 @@ nrHits = hitsRDD.count()
 print('\n\nNr of prediction misses: %d \n\n' % (nrMisses))
 print('\n\nNr of prediction hits: %d \n\n' % (nrHits))
 
+# Use:
+#trackFile 
+#albumFile 
+#artistFile 
+#genreFile 
 
-#print(missesRDD.collect())
 
+#Tracks to albums
+tracksToAlbumsRDD = sc.textFile(trackFile).map(lambda line:extractPosition(line,1))
+tracksToArtistsRDD = sc.textFile(trackFile).map(lambda line:extractPosition(line,2))
+
+albumsToArtistsRDD = sc.textFile(albumFile).map(lambda line:extractPosition(line,1))
+###################################################################
+
+#ta_temp_Dict = tracksToAlbumsRDD.collectAsMap()
+#trackToAlbumDict = sc.broadcast(ta_temp_Dict)
+
+# Get rid of 'None'
+# Then turn tracks to albums
+#missesToAlbumsRDD = missesRDD.map(lambda v: v[1]).map(lambda event: increseHierarchy(event,trackToAlbumDict))\
+#                            .missesToAlbumsRDD.filter(lambda v: v[0] != None).
+
+#Check for hits and misses
+
+#missesRDD2 = missesToAlbumsRDD.filter(lambda v: v[0] == None)
+#hitsRDD_albums = missesToAlbumsRDD.filter(lambda v: v[0] != None)
+
+
+#artists -> genre is NOT possible from hierarchical data
+#Any remaining non-calculables handles separately
 
 print('\n\n\n\n')
 print("#####################################################")
@@ -460,26 +446,58 @@ def knnOnSimilarities(simObject,k):
     return((target,prediction)) 
     #For calculatiing weighted aberage:
     # np.average(list1,weights=list2)
+
+
+def avgOfHistory(eventData):
+    #access similarities from target to all in history
+    target = eventData[0]
+    tValue = int(target[1])
+    history = eventData[1]
+
+    ratings = []
+
+    for item in history:
+        #itemID = int(item[0])
+        itemValue = int(item[1])
+        ratings.append(itemValue)
+
+    prediction = np.average(ratings)
+    
+    return((tValue,prediction))
+
+
+
 print("#####################################################")
 
 
-kForKNN = 10
-predictionsRDD = hitsRDD.map(lambda obj:knnOnSimilarities(obj,kForKNN))
+#kForKNN = 10
+predictionsRDD1 = hitsRDD.map(lambda obj:knnOnSimilarities(obj,kForKNN))
 #predictionsRDD = sc.parallelize([(1,1),(2,1),(5,9),(2,5)]) #2.54 is manual calculation
 
+predictionsRDD2 = missesRDD.map(lambda v: avgOfHistory(v[1]))
+
+predictionsRDD = predictionsRDD1.union(predictionsRDD2)
+
+
+#########################################################################################
+## Calculate RMSE for ALL predictions ###################################################
 
 squareErrors = predictionsRDD.map(lambda pred: (pred[0]-pred[1])**2)
-
 n = squareErrors.count()
-
-
 sumedSquareErrors = squareErrors.reduce(lambda a, b : a + b)
-
-
 rmse = math.sqrt(sumedSquareErrors/n)
+print('\n\nThe RMSE of TOTAL validation data is: %.2f' % (rmse))
+
+#########################################################################################
+## Calculate RMSE for hits only #########################################################
+
+squareErrorsHits = predictionsRDD1.map(lambda pred: (pred[0]-pred[1])**2)
+nHits = squareErrorsHits.count()
+sumedSquareErrors2 = squareErrorsHits.reduce(lambda a, b : a + b)
+rmse2 = math.sqrt(sumedSquareErrors2/n)
+print('\n\nThe RMSE of HITS ONLY validation data is: %.2f' % (rmse2))
 
 
-print('\n\nThe RMSE of validation data is: %.2f' % (rmse))
 
 print('\n\n\n\n')
 print("#####################################################")
@@ -488,20 +506,18 @@ print('\n\nNr of edges: %d' % (nrEdges))
 print('Nr of nodes: %d' % (nrNodes))
 
 
-print('\n\nNr of items in trainRDD: %d ' % (nrTrainItems))
-print('Nr of items in validationRDD: %d ' % (nrValItems))
-print('Nr of items in userRDD: %d' % (nrUsers))
+#print('\n\nNr of items in trainRDD: %d ' % (nrTrainItems))
+#print('Nr of items in validationRDD: %d ' % (nrValItems))
+#print('Nr of items in userRDD: %d' % (nrUsers))
 
-print('\n\nNr of items in unique validation keys RDD: %d ' % (nrUniqueValKeys))
-print('Nr of items in unique training keys RDD: %d ' % (nrUniqueTrainKeys))
+#print('\n\nNr of items in unique validation keys RDD: %d ' % (nrUniqueValKeys))
+#print('Nr of items in unique training keys RDD: %d ' % (nrUniqueTrainKeys))
 
-print('\n\nNr of unique validation keys in graph: %d' % (nrValHits))
-print('Nr of unique training keys in graph: %d' % (nrTrainHits))
+#print('\n\nNr of unique validation keys in graph: %d' % (nrValHits))
+#print('Nr of unique training keys in graph: %d' % (nrTrainHits))
 
-
-
-print('\n\nNr of items in shortest paths RDD: %d ' % (nrShortestPaths))
-print('Nr of NON-empty items in shortest paths RDD: %d' % (nrExistingShortestPaths))
+#print('\n\nNr of items in shortest paths RDD: %d ' % (nrShortestPaths))
+#print('Nr of NON-empty items in shortest paths RDD: %d' % (nrExistingShortestPaths))
 
 
 print('\n\nNr of prediction misses: %d ' % (nrMisses))
@@ -509,13 +525,22 @@ print('Nr of prediction hits: %d \n\n' % (nrHits))
 
 
 print('\n\nThe RMSE of validation data is: %.5f' % (rmse))
+print('The RMSE of HITS ONLY validation data is: %.5f' % (rmse2))
 
+print('\n\n\n\n')
+print("#####################################################")
 
-#print(predictionsRDD.collect())
+logFile = similarityFolder + 'GRAPH_RESULTS.txt' 
+log = open(logFile,'a')
 
+log.write('Nr of edges: %d \n' % (nrEdges))
+log.write('Nr of nodes: %d \n' % (nrNodes))
+log.write('\nNr of prediction misses: %d \n' % (nrMisses))
+log.write('Nr of prediction hits: %d \n' % (nrHits))
+log.write('\nThe RMSE of validation data is: %.5f \n' % (rmse))
+log.write('The RMSE of HITS ONLY validation data is: %.5f \n' % (rmse2))
 
-# - Do ML algorithm
-
+log.close()
 
 
 print('\n\n\n\n')
