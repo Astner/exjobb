@@ -6,26 +6,49 @@ import os,time
 import shutil
 import json
 from pprint import pprint
-import networkx as nx
-import numpy as np
+#import networkx as nx
+#import numpy as np
 import math
 
 
 sc = SparkContext()
-
 print(sc._conf.getAll())
 
 
 #######################################################################################################
 #######################################################################################################
 
-nrSteps = 3 #max nr steps on graph to find similarity paths
-kForKNN = 10
+local = True
 
-similarityFolder = 'yahoo/data/'
+
+nrSteps = 2 #max nr steps on graph to find similarity paths
+kForKNN = 5
+
+
+if local: 
+    similarityFolder = 'yahoo/data/'
+    localJson = 'yahoo/data/10k_artists_similarities.json'
+    jsonFile = localJson
+
+    trainFile = 'yahoo/data/temp/dev_10_users/trainIdx1_SPARK_VERSION.txt'
+    valFile = 'yahoo/data/temp/dev_10_users/validationIdx1_SPARK_VERSION.txt'
+
+else:
+    sys.path.append('/home/sprk/anaconda3/lib/python3.5/site-packages/')
+
+    similarityFolder = '/extra/data/astner/exjobb/runs/run2/'
+    jsonFile = similarityFolder + 'similarities.json'
+
+    trainFile = 'yahoo/data/trainIdx1_SPARK_VERSION.txt'
+    valFile = 'yahoo/data/validationIdx1_SPARK_VERSION.txt'
+    testFile = 'yahoo/data/testIdx1_SPARK_VERSION.txt'
+
 
 #######################################################################################################
 #######################################################################################################
+
+import networkx as nx
+
 
 albumFile = '../Webscope_C15/ydata-ymusic-kddcup-2011-track1/albumData1.txt'
 trackFile = '../Webscope_C15/ydata-ymusic-kddcup-2011-track1/trackData1.txt'
@@ -36,19 +59,19 @@ genreFile = '../Webscope_C15/ydata-ymusic-kddcup-2011-track1/genreData1.txt'
 #######################################################################################################
 
 #file = 'yahoo/data/10k_artists_similarities_v1.json'
-localJson = 'yahoo/data/10k_artists_similarities.json'
+#localJson = 'yahoo/data/10k_artists_similarities.json'
 #iceJson = 'concepts-spark20-refactor/experimental/higherorder/data_100k_mcc3/similarities.json'
-denseJson = 'concepts-spark20-refactor/experimental/higherorder/data_denseSubset/similarities.json'
-fullJson = '/extra/data/astner/CCMdata/run1/similarities.json'
+#denseJson = 'concepts-spark20-refactor/experimental/higherorder/data_denseSubset/similarities.json'
+#fullJson = '/extra/data/astner/CCMdata/run1/similarities.json'
 
 
 #jsonFile = similarityFolder + 'similarities.json'
-jsonFile = localJson
+#jsonFile = localJson
 
 #######################################################################################################
 #######################################################################################################
-trainFile = 'yahoo/data/temp/dev_10_users/trainIdx1_SPARK_VERSION.txt'
-valFile = 'yahoo/data/temp/dev_10_users/validationIdx1_SPARK_VERSION.txt'
+#trainFile = 'yahoo/data/temp/dev_10_users/trainIdx1_SPARK_VERSION.txt'
+#alFile = 'yahoo/data/temp/dev_10_users/validationIdx1_SPARK_VERSION.txt'
 #testFile = 'yahoo/data/temp/dev_10_users/testIdx1_SPARK_VERSION.txt'
 
 #trainFile = 'yahoo/data/trainIdx1_SPARK_VERSION.txt'
@@ -398,6 +421,15 @@ print('\n\n\n\n')
 print("#####################################################")
 
 
+def wAverage(values,weights):
+    nom = 0
+    if len(values) < 1:
+        return 0
+    for i in range(0,len(values)):
+        nom = nom + values[i] * weights[i]
+    return nom / sum(weights) 
+
+
 # If k > nr available data points, all datapoints are used
 def knnOnSimilarities(simObject,k):
     #print(simObject)
@@ -442,7 +474,7 @@ def knnOnSimilarities(simObject,k):
             break
             
     #The lists are processed
-    prediction = np.average(valueList,weights=similarityList)
+    prediction = wAverage(valueList,weights=similarityList)
     
     return((target,prediction)) 
     #For calculatiing weighted aberage:
@@ -462,7 +494,10 @@ def avgOfHistory(eventData):
         itemValue = int(item[1])
         ratings.append(itemValue)
 
-    prediction = np.average(ratings)
+    if len(ratings) < 1:
+        prediction = 0
+    else:
+        prediction = sum(ratings)/len(ratings)
     
     return((tValue,prediction))
 
