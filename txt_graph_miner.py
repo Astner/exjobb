@@ -111,17 +111,21 @@ def createGraphFromTXT(txtFile):
 	# till the file is empty
 	while line != '\n':
 		link = line.strip('\n').split(' ') #Turn to usable link format
-		weight = float(link[0])
-		source = int(link[1])
-		target = int(link[2])
 
-		dist = 1 - weight
+		if len(link) == 3:
+			weight = float(link[0])
+			source = int(link[1])
+			target = int(link[2])
 
-		print('Weight: %.12f, From: %d, To: %d' % (weight,source,target))
+			dist = 1 - weight
 
-		#TODO: INDEX TO TRACK ID?????
-		if weight > 0 and dist > 0: 
-			G.add_edge(source,target,similarity = weight, distance = dist)
+			#print('Weight: %.12f, From: %d, To: %d' % (weight,source,target))
+
+			#TODO: INDEX TO TRACK ID?????
+			if weight > 0 and dist > 0: 
+				G.add_edge(source,target,similarity = weight, distance = dist)
+		else:
+			print(link)
 
 		line = f.readline()
 	
@@ -156,7 +160,7 @@ print("#####################################################")
 
 graph = createGraphFromTXT(txtFile)
 
-print(graph.nodes())
+#print(graph.nodes())
 
 nrEdges = len(graph.edges())
 nrNodes = len(graph.nodes())
