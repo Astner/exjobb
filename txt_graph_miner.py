@@ -19,7 +19,7 @@ print(sc._conf.getAll())
 #######################################################################################################
 #######################################################################################################
 
-local = False
+local = True
 
 
 nrSteps = 2 #max nr steps on graph to find similarity paths
@@ -101,6 +101,7 @@ def indexToTrackID(index,nodes):
 #     return G
 
 
+# NOTE: THE NEW ONE
 def createGraphFromTXT(txtFile):
 	f = open(txtFile) #Open file with read only permits
 	line = f.readline() #read first line
@@ -109,7 +110,7 @@ def createGraphFromTXT(txtFile):
 	
 	# If the file is not empty keep reading line one at a time
 	# till the file is empty
-	while line != '\n':
+	while line != '\n' and line != '':
 		link = line.strip('\n').split(' ') #Turn to usable link format
 
 		if len(link) == 3:
@@ -142,16 +143,16 @@ def splitAndLabel(line,label):
         return []
 
 
-def userToPredObject(line):
-	userID,values = line
-	history = []
-	validation = []
-	for item in values:
-		if item[2] == 'history':
-			history.append([item[0],item[1]])
-		elif item[2] == 'validation':
-			validation.append([item[0],item[1]])
-	return 0
+# def userToPredObject(line):
+# 	userID,values = line
+# 	history = []
+# 	validation = []
+# 	for item in values:
+# 		if item[2] == 'history':
+# 			history.append([item[0],item[1]])
+# 		elif item[2] == 'validation':
+# 			validation.append([item[0],item[1]])
+# 	return 0
 
 print("#####################################################")
 
