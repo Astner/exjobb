@@ -22,6 +22,7 @@ devFile = 'yahoo/data/temp/testDataset_3_users_SPARK_VERSION.txt'
 #dev_100k = 'yahoo/data/temp/artistDataset_100k_users_SPARK_VERSION.txt'
 fullFile = 'yahoo/data/trainIdx1_SPARK_VERSION.txt'
 fullFile2 = '/extra/data/astner/exjobb/yahoo/data/trainIdx1_SPARK_VERSION.txt'
+subsetFile = 'yahoo/data/smallSubset/training/'
 
 #hdfsIn = 'hdfs://sprk1:9000/user/sprk/astner/fullFile/trainIdx1_SPARK_VERSION.txt'
 hdfsIn = 'hdfs://sprk1:9000/user/astner/trainIdx1_SPARK_VERSION.txt'
@@ -30,14 +31,15 @@ hdfsIn = 'hdfs://sprk1:9000/user/astner/trainIdx1_SPARK_VERSION.txt'
 
 localOut = 'yahoo/data/ngram/fullFile/tightBounds'
 extraOut = 'file:///extra/data/astner/exjobb/yahoo/data/ngram/fullFile/tightBounds'
+localSubsetOut = 'yahoo/data/ngram/smallSubset'
 
 #hdfsOut = 'hdfs://sprk1:9000/user/sprk/astner/ngram/fullFile'
 hdfsOut = 'hdfs://sprk1:9000/user/astner/ngram/fullFile'
 
 ################################################################
 ################################################################
-inputFile = hdfsIn
-outFolder = hdfsOut
+inputFile = subsetFile
+outFolder = localSubsetOut
 #/extra/data/astner/...
 
 

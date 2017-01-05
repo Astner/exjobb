@@ -16,18 +16,18 @@ fullFile = 'yahoo/data/trainIdx1_SPARK_VERSION.txt'
 val_full = 'yahoo/data/validationIdx1_SPARK_VERSION.txt'
 val_1k = 'yahoo/data/temp/dev_1k_users/validationIdx1_SPARK_VERSION.txt'
 
-testFull = ''
+testFull = 'yahoo/data/testIdx1_SPARK_VERSION.txt'
 
 ##############################################
-inputFile = dev_1k
-valFile = val_1k
+inputFile = fullFile
+valFile = val_full
 testFile = testFull
-outFolder = 'yahoo/data/temp/subsets/small'
+outFolder = 'yahoo/data/smallSubset'
 
 
 #minItemOccurence = 1200
 minUserHistory = 10
-nrToSkip = 5 #One in every nrToSkip will be slected to be used in subset
+nrToSkip = 10 #One in every nrToSkip will be slected to be used in subset
 
 
 #minItemOcc = sc.broadcast(minItemOccurence)
