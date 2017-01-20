@@ -22,7 +22,7 @@ testFull = 'yahoo/data/testIdx1_SPARK_VERSION.txt'
 inputFile = fullFile
 valFile = val_full
 testFile = testFull
-outFolder = 'yahoo/data/smallSubset'
+outFolder = 'yahoo/data/smallSubset_2'
 
 
 #minItemOccurence = 1200
@@ -145,7 +145,7 @@ usefulTestssRDD 		= filteredTest.filter(lambda line: int(line[1][3]) in userList
 print('\n\n\n\nNr of useful users after filtering: %d' % (len(usersDict)))
 
 print('\n\n\n\nNr of useful validation items after double filtering: %d' % (usefulValidationsRDD.count()))
-#print('\n\n\n\nNr of useful test items after double filtering: %d' % (usefulTestsRDD.count()))
+print('\n\n\n\nNr of useful test items after double filtering: %d' % (usefulTestsRDD.count()))
 
 ##################################################################
 # Write new subset to file 
@@ -157,7 +157,7 @@ def mergeFromSplit(line):
 	return('\t'.join(l))
 
 usefulValidationsRDD.map(lambda line: mergeFromSplit(line)).saveAsTextFile(outFolder +'/validation')
-#usefulTestssRDD.map(lambda line: mergeFromSplit(line)).saveAsTextFile(outFolder +'/test')
+usefulTestssRDD.map(lambda line: mergeFromSplit(line)).saveAsTextFile(outFolder +'/test')
 filteredTraining.map(lambda line: mergeFromSplit(line)).saveAsTextFile(outFolder +'/training')
 
 
